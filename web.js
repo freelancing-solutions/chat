@@ -15,24 +15,74 @@ const server = express()
 const io = socketIO(server);
 
 
-let users = [];
+
 let connections = [];
-let messages = [];
+
+
+const chat_room = {
+  chat_id: "",
+  created_by: "",
+  messages: [],
+  users : []  
+};
+
+const chat_rooms = [];
+
 
 const prepareMessage = async data => {
     data.timestamp = Date.now();
     data.message_id = uuidv4();
     console.log(data);  
-    messages.push(data); 
-    console.log("Previous messages", messages);  
-    return messages;
+
+    let chat_index = chat_rooms.findIndex(chat => chat.chat_id === data.chat_id);
+    
+    if (chat_index > -1){      
+        chat_rooms[chat_index].messages.push(data);
+    };
+  
+    
+    console.log("Previous messages", chat_rooms[chat_index].messages);  
+    return chat_rooms[chat_index].messages;
 };
 
 const onClearMessages = async data => {
     // check to see if the user is an admin
     // then clear messages
-    messages = [];
-    return messages;
+    let chat_index = chat_rooms.findIndex(
+      chat => chat.chat_id === data.chat_id
+    );
+    if (chat_index > -1){
+      chat_rooms[chat_index].messages = [];
+    }
+    
+    return [];
+};
+
+const userJoinedChat = async data => {
+
+  let chat_index = chat_rooms.findIndex(chat => chat.chat_id === data.chat_id);
+ 
+  if (chat_index > -1){
+    chat_rooms[chat_index].users.push(data);
+  }else{
+    chat_room.chat_id = data.chat_id;
+    chat_room.created_by = data.author;
+    chat_room.users.push(data);
+    chat_rooms.push(chat_room);
+  }
+
+  return chat_rooms[chat_index].users;
+};
+
+const onPopulate = async data => {
+  let chat_index = chat_rooms.findIndex(chat => chat.chat_id === data.chat_id);
+
+  let messages = [];
+  if (chat_index > -1){
+    messages = chat_rooms[chat_index].messages;
+  }
+
+  return messages;
 };
 
 io.on("connection", socket => {
@@ -60,20 +110,25 @@ io.on("connection", socket => {
   });
     
   socket.on("join", data => {
-    io.sockets.emit("join", data);
-    users.push(data);  
+    console.log('join message',data);
+    userJoinedChat(data).then(results => {
+      io.sockets.emit("join", results);
+    });
+    
   });
   
   socket.on("clear", data => {
+    console.log('clear message', data);
     onClearMessages(data).then(results => {
       io.sockets.emit("chat", results);
     });    
   });
 
   socket.on("populate", data => {
-      socket.emit("populate", messages);
+    console.log('populate message',data);
+    onPopulate(data).then(results => socket.emit("populate", results));      
   });
-  
+
 });
 
 
