@@ -30,15 +30,23 @@ const chat_rooms = [];
 
 
 const prepareMessage = async data => {
+    
     data.timestamp = Date.now();
     data.message_id = uuidv4();
-    console.log(data);  
+    console.log(data);
+
     let messages = [];
     let chat_index = chat_rooms.findIndex(chat => chat.chat_id === data.chat_id);
     
     if (chat_index > -1){      
         chat_rooms[chat_index].messages.push(data);
         messages = chat_rooms[chat_index].messages;
+    }else{
+      chat_room.chat_id = data.chat_id;
+      chat_room.created_by = data.author;
+      chat_room.messages.push(data);
+      chat_rooms.push(chat_room);
+      messages = chat_room.messages;
     };
   
     
@@ -101,9 +109,7 @@ io.on("connection", socket => {
   socket.on("chat", data => {
     prepareMessage(data).then( results => {
       io.sockets.emit("chat", results);
-    }).catch(error => {
-      io.sockets.emit("chat", [...data]);
-    });    
+    });
   });
 
   socket.on("typing", data => {
