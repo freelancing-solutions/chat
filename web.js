@@ -33,16 +33,17 @@ const prepareMessage = async data => {
     data.timestamp = Date.now();
     data.message_id = uuidv4();
     console.log(data);  
-
+    let messages = [];
     let chat_index = chat_rooms.findIndex(chat => chat.chat_id === data.chat_id);
     
     if (chat_index > -1){      
         chat_rooms[chat_index].messages.push(data);
+        messages = chat_rooms[chat_index].messages;
     };
   
     
-    console.log("Previous messages", chat_rooms[chat_index].messages);  
-    return chat_rooms[chat_index].messages;
+    console.log("Previous messages", messages);  
+    return messages;
 };
 
 const onClearMessages = async data => {
@@ -101,7 +102,7 @@ io.on("connection", socket => {
     prepareMessage(data).then( results => {
       io.sockets.emit("chat", results);
     }).catch(error => {
-      io.sockets.emit("chat", data);
+      io.sockets.emit("chat", [...data]);
     });    
   });
 
