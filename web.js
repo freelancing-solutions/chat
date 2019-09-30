@@ -19,6 +19,15 @@ let users = [];
 let connections = [];
 let messages = [];
 
+const prepareMessage = async data => {
+    data.timestamp = Date.now();
+    data.message_id = uuidv4();
+    console.log(data);  
+    messages.push(data); 
+    console.log("Previous messages", messages);  
+    return messages;
+};
+
 
 io.on("connection", socket => {
   
@@ -33,12 +42,11 @@ io.on("connection", socket => {
   // send message
 
   socket.on("chat", data => {
-    data.timestamp = Date.now();
-    data.message_id = uuidv4();
-    console.log(data);  
-    io.sockets.emit("chat", data);
-    messages.push(data); 
-    console.log('Previous messages',messages);  
+    prepareMessage(data).then( results => {
+      io.sockets.emit("chat", results);
+    }).catch(error => {
+      io.sockets.emit("chat", data);
+    });    
   });
 
   socket.on("typing", data => {
