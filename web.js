@@ -28,6 +28,12 @@ const prepareMessage = async data => {
     return messages;
 };
 
+const onClearMessages = async data => {
+    // check to see if the user is an admin
+    // then clear messages
+    messages = [];
+    return messages;
+};
 
 io.on("connection", socket => {
   
@@ -56,7 +62,13 @@ io.on("connection", socket => {
   socket.on("join", data => {
     socket.emit("join",data);
     users.push(data);  
-  })    
+  });
+  
+  socket.on("clear", data => {
+    onClearMessages(data).then(results => {
+      io.sockets.emit("chat", results);
+    });    
+  })
 });
 
 
