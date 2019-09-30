@@ -20,6 +20,8 @@ let connections = [];
 let messages = [];
 
 
+
+
 io.on("connection", socket => {
   
   connections.push(socket);
