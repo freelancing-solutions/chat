@@ -60,7 +60,7 @@ io.on("connection", socket => {
   });
     
   socket.on("join", data => {
-    socket.emit("join",data);
+    io.sockets.emit("join", data);
     users.push(data);  
   });
   
@@ -68,7 +68,12 @@ io.on("connection", socket => {
     onClearMessages(data).then(results => {
       io.sockets.emit("chat", results);
     });    
-  })
+  });
+
+  socket.on("populate", data => {
+      socket.emit("populate", messages);
+  });
+  
 });
 
 
