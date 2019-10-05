@@ -5,8 +5,14 @@ const socketIO = require('socket.io');
 const path = require('path');
 const uuidv4 = require('uuid/v4');
 
+const axios = require('axios');
+
 const PORT = process.env.PORT || 5000;
 const INDEX = path.join(__dirname, 'index.html');
+let redis = require('redis');
+let credentials = '';
+let client = '';
+let host = "redis-17273.c85.us-east-1-2.ec2.cloud.redislabs.com:17273";
 
 const server = express()
   .use((req, res) => res.sendFile(INDEX) )
@@ -14,6 +20,25 @@ const server = express()
 
 const io = socketIO(server);
 
+credentials = {
+  user: "mobiusndou@gmail.com",
+  password: "Mobius5627084@",
+  host: "redis-17273.c85.us-east-1-2.ec2.cloud.redislabs.com:17273",
+  port: 6379
+};
+
+client = redis.createClient(
+  "redis://" +
+    credentials.user +
+    ":" +
+    credentials.password +
+    "@" +
+    credentials.host +
+    ":" +
+    credentials.port
+);
+
+console.log("Client Redis", client);
 
 
 let connections = [];
@@ -26,7 +51,35 @@ const chat_room = {
   users : []  
 };
 
+
 const chat_rooms = [];
+
+
+const retrieveFromRedis = async data => {
+
+  let redisKey = `chat_id:${data.chat_id}`;
+  let chat_room;
+
+  client.get(redisKey,(error,results) => {
+    if(results){
+      chat_room = results
+
+    }else{      
+  
+      chat_room = {}      
+
+    }
+  });
+
+  return chat_room
+};
+
+const storeToRedis = async data => {
+  let redisKey = `chat_id:${data.chat_id}`;
+  
+  client.setex(redisKey,3600,JSON.stringify(data))
+  return true;
+};
 
 
 const prepareMessage = async data => {
@@ -36,8 +89,7 @@ const prepareMessage = async data => {
     console.log(data);
 
     let messages = [];
-    let chat_index = chat_rooms.findIndex(chat => chat.chat_id === data.chat_id);
-    
+    let chat_rooms = chat_rooms.find(chat => chat.chat_id === data.chat_id);    
     if (chat_index > -1){      
         chat_rooms[chat_index].messages.push(data);
         messages = chat_rooms[chat_index].messages;
@@ -49,7 +101,6 @@ const prepareMessage = async data => {
       messages = chat_room.messages;
     };
   
-    
     console.log("Previous messages", messages);  
     return messages;
 };
@@ -94,6 +145,7 @@ const onPopulate = async data => {
   return messages;
 };
 
+
 io.on("connection", socket => {
   
   connections.push(socket);
@@ -107,9 +159,11 @@ io.on("connection", socket => {
   // send message
 
   socket.on("chat", data => {
+    
     prepareMessage(data).then( results => {
       io.sockets.emit("chat", results);
     });
+
   });
 
   socket.on("typing", data => {
@@ -133,7 +187,7 @@ io.on("connection", socket => {
 
   socket.on("populate", data => {
     console.log('populate message',data);
-    onPopulate(data).then(results => socket.emit("populate", results));      
+     onPopulate(data).then(results => socket.emit("populate", results));      
   });
 
 });
