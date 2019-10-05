@@ -10,9 +10,8 @@ const axios = require('axios');
 const PORT = process.env.PORT || 5000;
 const INDEX = path.join(__dirname, 'index.html');
 let redis = require('redis');
-let credentials = '';
 let client = '';
-let host = "redis-17273.c85.us-east-1-2.ec2.cloud.redislabs.com:17273";
+
 
 const server = express()
   .use((req, res) => res.sendFile(INDEX) )
@@ -20,23 +19,15 @@ const server = express()
 
 const io = socketIO(server);
 
-credentials = {
-  user: "mobiusndou@gmail.com",
-  password: "Mobius5627084@",
-  host: "redis-17273.c85.us-east-1-2.ec2.cloud.redislabs.com:17273",
-  port: 6379
+const credentials = {
+  user: "h",
+  password: "p8848c3885c9df93845e59c3aaec54f4c26aa961f991452e6ac5484416c68f5c4",
+  host:
+    "redis://h:p8848c3885c9df93845e59c3aaec54f4c26aa961f991452e6ac5484416c68f5c4@ec2-54-156-246-25.compute-1.amazonaws.com:15469",
+  port: 15469
 };
 
-client = redis.createClient(
-  "redis://" +
-    credentials.user +
-    ":" +
-    credentials.password +
-    "@" +
-    credentials.host +
-    ":" +
-    credentials.port
-);
+client = redis.createClient(credentials.host);
 
 console.log("Client Redis", client);
 
@@ -89,7 +80,7 @@ const prepareMessage = async data => {
     console.log(data);
 
     let messages = [];
-    let chat_rooms = chat_rooms.find(chat => chat.chat_id === data.chat_id);    
+    let chat_index = chat_rooms.findIndex(chat => chat.chat_id === data.chat_id);    
     if (chat_index > -1){      
         chat_rooms[chat_index].messages.push(data);
         messages = chat_rooms[chat_index].messages;
