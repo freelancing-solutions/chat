@@ -1,8 +1,6 @@
 let redis = require("redis");
 let client = "";
 
-
-
 const config = {
   redis:
     "redis://h:p8848c3885c9df93845e59c3aaec54f4c26aa961f991452e6ac5484416c68f5c4@ec2-54-156-246-25.compute-1.amazonaws.com:15469"
@@ -10,7 +8,7 @@ const config = {
 
 client = redis.createClient(config.redis);
 
-console.log("Client Redis", client);
+
 
 const retrieveFromRedis = async () => {
 
