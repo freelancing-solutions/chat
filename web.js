@@ -1,162 +1,68 @@
 'use strict';
+// app main requires
+const feathers = require("@feathersjs/feathers");
+const express = require('@feathersjs/express');
+const socketio = require('@feathersjs/socketio');
 
-const express = require('express');
-const socketIO = require('socket.io');
-const path = require('path');
-const uuidv4 = require('uuid/v4');
+// chat requires
+const chat_utils = require('./chat-utils');
 
-const axios = require('axios');
 
+//****************************************************************************** */
+//****************************************************************************** */
+//****************************************************************************** */
+
+
+
+
+// PORT Configs and Index
 const PORT = process.env.PORT || 5000;
-const INDEX = path.join(__dirname, 'index.html');
-let redis = require('redis');
-let client = '';
 
 
-const server = express()
-  .use((req, res) => res.sendFile(INDEX) )
-  .listen(PORT, () => console.log(`Listening on ${ PORT }`));
+//Servicees
+// please try adding methods as services
 
-const io = socketIO(server);
+// initializing express and feathers
+const app = express(feathers());
 
-const credentials = {
-  user: "h",
-  password: "p8848c3885c9df93845e59c3aaec54f4c26aa961f991452e6ac5484416c68f5c4",
-  host:
-    "redis://h:p8848c3885c9df93845e59c3aaec54f4c26aa961f991452e6ac5484416c68f5c4@ec2-54-156-246-25.compute-1.amazonaws.com:15469",
-  port: 15469
-};
+// adding the ability to parse json
+app.use(express.json());
 
-client = redis.createClient(credentials.host);
+//config socket io in realtion APIs
+app.configure(socketio());
 
-console.log("Client Redis", client);
+//Enable rest services
+app.configure(express.rest());
 
+// register services
 
-let connections = [];
+// app.use('/chat', new ChatService());
 
+// new connections connect to stream
+app.on('connection', conn => app.channel('stream').join(conn));
 
-const chat_room = {
-  chat_id: "",
-  created_by: "",
-  messages: [],
-  users : []  
-};
+// publish to stream
+app.publish(data => app.channel('stream'));
 
 
-const chat_rooms = [];
+app.listen(PORT).on('listening', () => console.log(`Realtime server running on ${PORT}`));
 
 
-const retrieveFromRedis = async data => {
-
-  let redisKey = `chat_id:${data.chat_id}`;
-  let chat_room;
-
-  client.get(redisKey,(error,results) => {
-    if(results){
-      chat_room = results
-
-    }else{      
+app.io.on("connection", socket => {
   
-      chat_room = {}      
-
-    }
-  });
-
-  return chat_room
-};
-
-
-
-const storeToRedis = async data => {
-  let redisKey = `chat_id:${data.chat_id}`;
-  
-  client.setex(redisKey,3600,JSON.stringify(data))
-  return true;
-};
-
-
-const prepareMessage = async data => {
-    
-    data.timestamp = Date.now();
-    data.message_id = uuidv4();
-    console.log(data);
-
-    let messages = [];
-    let chat_index = chat_rooms.findIndex(chat => chat.chat_id === data.chat_id);    
-    if (chat_index > -1){      
-        chat_rooms[chat_index].messages.push(data);
-        messages = chat_rooms[chat_index].messages;
-    }else{
-      chat_room.chat_id = data.chat_id;
-      chat_room.created_by = data.author;
-      chat_room.messages.push(data);
-      chat_rooms.push(chat_room);
-      messages = chat_room.messages;
-    };
-  
-    console.log("Previous messages", messages);  
-    return messages;
-};
-
-const onClearMessages = async data => {
-    // check to see if the user is an admin
-    // then clear messages
-    let chat_index = chat_rooms.findIndex(
-      chat => chat.chat_id === data.chat_id
-    );
-    if (chat_index > -1){
-      chat_rooms[chat_index].messages = [];
-    }
-    
-    return [];
-};
-
-const userJoinedChat = async data => {
-
-  let chat_index = chat_rooms.findIndex(chat => chat.chat_id === data.chat_id);
- 
-  if (chat_index > -1){
-    chat_rooms[chat_index].users.push(data);
-  }else{
-    chat_room.chat_id = data.chat_id;
-    chat_room.created_by = data.author;
-    chat_room.users.push(data);
-    chat_rooms.push(chat_room);
-  }
-
-  return chat_rooms[chat_index].users;
-};
-
-const onPopulate = async data => {
-  let chat_index = chat_rooms.findIndex(chat => chat.chat_id === data.chat_id);
-
-  let messages = [];
-  if (chat_index > -1){
-    messages = chat_rooms[chat_index].messages;
-  }
-
-  return messages;
-};
-
-
-io.on("connection", socket => {
-  
-  connections.push(socket);
+  chat_utils.connections.push(socket);
     
   // disconnect
   socket.on("disconnect", data => {
-    connections.splice(connections.indexOf(socket), 1);
-    console.log("Disconnected : %s sockets connected", connections.length);
+    chat_utils.connections.splice(chat_utils.connections.indexOf(socket), 1);
+    console.log("Disconnected : %s sockets connected", chat_utils.connections.length);
   });
 
   // send message
-
-  socket.on("chat", data => {
-    
-    prepareMessage(data).then( results => {
-      io.sockets.emit("chat", results);
+  socket.on("chat", data => {    
+    chat_utils.prepareMessage(data).then(results => {
+      app.io.sockets.emit("chat", results);
     });
-
   });
 
   socket.on("typing", data => {
@@ -165,26 +71,24 @@ io.on("connection", socket => {
     
   socket.on("join", data => {
     console.log('join message',data);
-    userJoinedChat(data).then(results => {
-      io.sockets.emit("join", results);
+    chat_utils.userJoinedChat(data).then(results => {
+      app.io.sockets.emit("join", results);
     });
     
   });
   
   socket.on("clear", data => {
     console.log('clear message', data);
-    onClearMessages(data).then(results => {
-      io.sockets.emit("chat", results);
+    chat_utils.onClearMessages(data).then(results => {
+      app.io.sockets.emit("chat", results);
     });    
   });
 
   socket.on("populate", data => {
     console.log('populate message',data);
-     onPopulate(data).then(results => socket.emit("populate", results));      
+     chat_utils.onPopulate(data).then(results => socket.emit("populate", results));      
   });
 
 });
 
-
-
-// end of chat app
+// // end of chat app
