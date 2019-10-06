@@ -117,11 +117,17 @@ const onPopulate = async data => {
               const chat_room = response;
               
               data_store.store(uid,chat_room).then(response => {
-
+                  console.log(response);
+              }).catch(error => {
+                //TODO use some sort of error reporting and send back to main endpoint
+                console.log(error);
               });
             }
 
-          })
+          }).catch(error => {
+            //TODO use some sort of error reporting and send back to main endpoint
+            console.log(error);
+          });
     }
 
     return messages;
