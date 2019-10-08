@@ -1,9 +1,9 @@
 const axios = require('axios');
-
+const config = require('config');
 
 // use admin_uid to create new chat_room
-const endpoint_server = process.env.STORE_ENDPOINT_SERVER || 'http://localhost:46080/api/chat-rooms/'
-const admin_uid = process.env.ADMIN_USER || null;
+const endpoint_server = process.env.STORE_ENDPOINT_SERVER || config.get('STORE_ENDPOINT_SERVER');
+const admin_uid = process.env.ADMIN_USER || config.get("ADMIN_USER");
 
 const fetchChatRoom = async (uid,chat_id) => {
     let useuid = uid;
