@@ -61,9 +61,57 @@ const storeChatRoom = async (uid, chat_room) => {
           });
 
         return results;
-      };;
+      };
+
+  const deleteChatRoom = async (uid,chat_id)  => {
+        const api_router = endpoint_server + `${chat_id}/${useuid}`;
+        const results = { status: true, payload: {}, error: {} };
+
+        await axios.delete(api_router).then(response => {
+            if (response.status === true){
+              return response.data;
+            }else{
+              throw new Error("there was an error deleting a chat room");
+            }
+        }).then(chat_room => {
+          results.status = true;
+          results.payload = {...chat_room};
+          results.error = {};
+        }).catch(error => {
+          results.status = false;
+          results.payload = {};
+          results.error = {...error};
+        });
+
+        return results;
+
+  };
+
+  const updateChatRoom = (uid,data) => {
+        const api_router = endpoint_server + `${chat_id}/${useuid}`;
+        const results = { status: true, payload: {}, error: {} };
+
+        await axios.update(api_router,data).then(response => {
+          if (response.status === true){
+            return response.data;
+          };
+          throw new Error('there was an error updating chat room')
+        }).then(chat_room => {
+          results.status = true;
+          results.payload = {...chat_room};
+          results.error = {};
+        }).error(error => {
+          results.status = false;
+          results.payload = {};
+          results.error = {...error};
+        });
+
+        return results;
+  };
 
 module.exports = {
     store : storeChatRoom,
-    fetch : fetchChatRoom
+    fetch : fetchChatRoom,
+    delete : deleteChatRoom,
+    update : updateChatRoom
 };

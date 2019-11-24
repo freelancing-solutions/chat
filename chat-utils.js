@@ -63,6 +63,8 @@ const prepareMessage = async data => {
   messages = chat_rooms[chat_index].messages;
 
   
+
+  
   return messages;
 };
 
