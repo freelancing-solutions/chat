@@ -48,32 +48,49 @@ app.listen(PORT).on('listening', () => console.log(`Realtime server running on $
 app.io.on("connection", socket => {
   
   chat_utils.connections.push(socket);
+
+  // 
     
-  // disconnect
+  // disconnect---here a user leaves a chat room---consider turning the user offline
   socket.on("disconnect", data => {
     chat_utils.connections.splice(chat_utils.connections.indexOf(socket), 1);
     console.log("Disconnected : %s sockets connected", chat_utils.connections.length);
   });
 
-  // send message
+  // create chat room --- here a user creates a chat room---
+
+  socket.on("create-room", data => {
+
+  });
+
+  // fetches room data
+  socket.on("get-room",data => {
+
+  });
+
+  // send message----here a user actually sends a message
   socket.on("chat", data => {    
-    chat_utils.prepareMessage(data).then(results => {
-      app.io.sockets.emit("chat", results);
+    
+    chat_utils.sendMessage(data).then(results => {
+      chat_utils.fetchMessages(data).then(results => app.io.sockets.emit("chat", results))      
     });
   });
 
-  socket.on("typing", data => {
-    socket.broadcast.emit("typing", data);
+  // TODO-rewrite this to broadcast only on my chat room
+  socket.on("typing", data => {    
+    app.io.sockets.emit("typing", data);
   });
-    
+
+  // here a user joins a chat meaning the user gets added to a chat room
   socket.on("join", data => {
     console.log('join message',data);
-    chat_utils.userJoinedChat(data).then(results => {
+    chat_utils.joinChatRoom(data).then((results) => {
       app.io.sockets.emit("join", results);
     });
     
   });
   
+  // this clears chat messages----needs to be revised
   socket.on("clear", data => {
     console.log('clear message', data);
     chat_utils.onClearMessages(data).then(results => {
@@ -81,9 +98,17 @@ app.io.on("connection", socket => {
     });    
   });
 
+  // on populate can fetch users list and messages list
+  // todo make sure it fetches users list as well
   socket.on("populate", data => {
     console.log('populate message',data);
-     chat_utils.onPopulate(data).then(results => socket.emit("populate", results));      
+     chat_utils.fetchMessages(data).then(results => socket.emit("populate", results));      
+  });
+
+  // this can fetch a list of users
+  socket.on("users", data => {
+    console.log('fetch a list of chat users',data);
+    chat_utils.onFetchUsers(data).then(results => socket.emit("users", results));
   });
 
 });

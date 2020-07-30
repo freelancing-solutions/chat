@@ -1,0 +1,38 @@
+application: realtime-chat-server
+version: 1
+runtime: python27
+api_version: 1
+threadsafe: yes
+includes:
+  - api.yaml
+  - tasks.yaml
+
+
+
+handlers:
+- url: /favicon\.ico
+  static_files: favicon.ico
+  upload: favicon\.ico
+
+- url: /static
+  static_dir: templates/static
+  
+
+- url: /
+  secure: always
+  script: main.app
+  
+- url: .*
+  secure: always
+  script: main.app
+
+libraries:
+- name: webapp2
+  version: "2.5.2"
+- name: jinja2
+  version: latest
+
+
+inbound_services:
+- mail
+- warmup

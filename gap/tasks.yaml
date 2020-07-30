@@ -1,0 +1,6 @@
+handlers:
+
+- url: /tasks/.*
+  secure: always
+  login: admin
+  script: tasks.app

@@ -1,6 +1,5 @@
 let mongoose = require("mongoose");
 
-exports.ChatRoom = mongoose.model("ChatRoom", require("./chatRoomSchema"));
 
 
 const connectDB = async () => {
@@ -27,6 +26,8 @@ const connectDB = async () => {
         // that retrieves data from previous days
 };
 
-
+exports.ChatRoom = mongoose.model("ChatRoom", require("./chatRoomSchema"));
+exports.ChatUsers = mongoose.model("ChatUsers", require("./chatUsersSchema"));
+exports.Messages = mongoose.model('Messages', require("./messagesSchema"));
 module.exports = connectDB;
 

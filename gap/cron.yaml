@@ -1,0 +1,5 @@
+
+cron:
+- description: archive messages older than 72 hours
+  url: /tasks/archive-messages
+  schedule: every 1 hour
