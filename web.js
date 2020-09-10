@@ -86,8 +86,10 @@ app.io.on("connection", socket => {
   socket.on("chat", data => {        
     console.log('chat ', data);
     data_store.onSendMessage(data).then(response => {
+      console.log('send message response ', response);
       if (response.status){
         data_store.onFetchMessages(response.payload.chat_id).then(response => {
+          console.log('fetch messages response', response);
           if (response.status){
             app.io.emit("chat", response.payload)
           }
