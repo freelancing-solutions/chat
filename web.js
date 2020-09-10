@@ -1,14 +1,8 @@
-// Setup basic express server
-var express = require('express');
-var app = express();
-var path = require('path');
-var server = require('http').createServer(app);
-var io = require('socket.io')(server);
-var port = process.env.PORT || 3000;
-
-
-// Routing
-app.use(express.static(path.join(__dirname, 'public')));
+'use strict';
+// app main requires
+const feathers = require("@feathersjs/feathers");
+const express = require('@feathersjs/express');
+const socketio = require('@feathersjs/socketio');
 
 // chat requires
 const chat_utils = require('./chat-utils');
@@ -24,13 +18,38 @@ const { response } = require("@feathersjs/express");
 const PORT = process.env.PORT || 5000;
 
 
+//Servicees
+// please try adding methods as services
+
+// initializing express and feathers
+const app = express(feathers());
+
+// adding the ability to parse json
+app.use(express.json());
+
+//config socket io in realtion APIs
+app.configure(socketio());
+
+//Enable rest services
+app.configure(express.rest());
+
+// register services
+
+// app.use('/chat', new ChatService());
+
+// new connections connect to stream
+app.on('connection', conn => app.channel('stream').join(conn));
+
+// publish to stream
+app.publish(data => app.channel('stream'));
 
 
-server.listen(PORT).on('listening', () => console.log(`Realtime server running on ${PORT}`));
+app.listen(PORT).on('listening', () => console.log(`Realtime server running on ${PORT}`));
 
 
-io.on("connection", socket => {    
-    // chat_utils.connections.push(socket);
+app.io.on("connection", socket => {
+
+  chat_utils.connections.push(socket);
 
   
   // 
@@ -89,7 +108,7 @@ io.on("connection", socket => {
   socket.on("typing", data => {
         // use socket to emit the typing message to everyone presently dont work though
         console.log('typing', data);
-    socket.broadcast.emit("typing", data);    
+    socket.broadcast.emit("typing", data);
   });
 
   // here a user joins a chat meaning the user gets added to a chat room
