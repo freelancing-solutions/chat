@@ -12,16 +12,15 @@ const ChatRoom = require('./database');
 const ChatUsers = require('./database');
 const Messages =  require('./database');
 
-// modify to use mongoDB
-// connectDB();
+
 
 const fetchChatRoom = async (uid,chat_id) => {
   
     let useuid = uid;
     if(admin_uid !== null)  useuid = admin_uid;
     
-
-    const api_router = endpoint_server + `${chat_id}/${useuid}`;    
+    // fetching a specific chatroom
+    const api_router = endpoint_server + `/room/${chat_id}/${useuid}`;    
     const results = {status:true,payload:{},error:{}};
 
     await axios.get(api_router).then(response => {
@@ -50,10 +49,10 @@ const storeChatRoom = async (uid, chat_room) => {
       useuid = admin_uid;
     }
 
-    const api_router = endpoint_server + `${chat_id}/${useuid}`;
+    const api_router = endpoint_server + `/room/${useuid}`;
     const results = { status: true, payload: {}, error: {} };
 
-    await axios.post(api_router, chat_room).then(response => {
+    await axios.post(api_router, JSON.stringify(chat_room)).then(response => {
         if (response.status === 200) {
           return response.data;
         } else {
@@ -73,7 +72,7 @@ const storeChatRoom = async (uid, chat_room) => {
 };
 
 const deleteChatRoom = async (uid,chat_id)  => {
-      const api_router = endpoint_server + `${chat_id}/${useuid}`;
+      const api_router = endpoint_server + `/room/${chat_id}/${useuid}`;
       const results = { status: true, payload: {}, error: {} };
 
       await axios.delete(api_router).then(response => {
@@ -96,10 +95,10 @@ const deleteChatRoom = async (uid,chat_id)  => {
 };
 
 const updateChatRoom = async (uid,data) => {
-      const api_router = endpoint_server + `${chat_id}/${useuid}`;
+      const api_router = endpoint_server + `/room/${chat_id}/${useuid}`;
       const results = { status: true, payload: {}, error: {} };
 
-      await axios.update(api_router,data).then(response => {
+      await axios.update(api_router,JSON.stringify(data)).then(response => {
         if (response.status === true){
           return response.data;
         };
@@ -148,7 +147,7 @@ const onSendMessage = async message => {
           results.payload = {}
         });
 
-        // this will return messages which are only related to this chat_id
+        
         return results.payload;
 };
 
@@ -162,7 +161,7 @@ const onFetchMessages = async chat_id => {
           }
           throw new Error('error fetching messages')
         }).then(messages => {
-          console.log('returned messages',messages);
+          // console.log('returned messages',messages);
           results.status = true;
           results.payload = [...messages];
           results.error = {}
@@ -179,7 +178,7 @@ const onFetchMessages = async chat_id => {
 // User functions
 
 
-const onJoinChatRoom = async user_detail => {
+const onJoinChatRoom = async (user_detail,chat_id) => {
         const api_router = endpoint_server + `/user/${chat_id}`;
         const results = { status: true, payload: {}, error: {} };
 

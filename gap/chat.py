@@ -19,9 +19,7 @@ class ChatUsers(ndb.Expando):
 
 
     def getChatUsers(self, chat_id):
-
-        chat_users_query = ChatUsers.query(ChatUsers.chat_id == str(chat_id).lower())
-        return chat_users_query.fetch()        
+        return [user.to_dict() for user in ChatUsers.query(ChatUsers.chat_id == str(chat_id).lower()).fetch()]
 
     def getUser(self,uid):
 
@@ -73,12 +71,10 @@ class ChatMessages(ndb.Expando):
     def getChatMessages(self, chat_id):
 
         # ordering messages by the order in which they where sent
-        chat_messages_query = ChatMessages.query(ChatMessages.chat_id == str(chat_id).lower()).order(ChatMessages.timestamp)
-        messages_list = chat_messages_query.fetch()
-        logging.info('messages {}'.format(messages_list))
-        return messages_list
+        # TODO- include all limits and constants on constants utility        
+        return [message.to_dict() for message in ChatMessages.query(ChatMessages.chat_id == str(chat_id).lower()).order(ChatMessages.timestamp).fetch(limit=100)]
 
-    def addMessage(self,message_detail):
+    def addMessage(self,message_detail, chat_id):
 
         message_instance = ChatMessages()
         message_instance.message_id = message_detail['message_id']
@@ -100,10 +96,9 @@ class ChatRoom (ndb.Expando):
 
 
   
-    def getChatRoom(self, chat_id):
+    def getChatRoom(self,uid, chat_id):
 
-        chat_room_query = ChatRoom.query(ChatRoom.chat_id == str(chat_id).lower())
-        chat_rooms = chat_room_query.fetch()
+        chat_rooms = ChatRoom.query(ChatRoom.chat_id == str(chat_id).lower()).fetch()
         if len(chat_rooms) > 0:
             chat_room = chat_rooms[0]
         else:
@@ -112,7 +107,7 @@ class ChatRoom (ndb.Expando):
         return chat_room
 
 
-    def addChatRoom(self,room_detail):
+    def addChatRoom(self,room_detail,uid):
 
         chat_room_query = ChatRoom.query(ChatRoom.chat_id == str(room_detail[chat_id]).lower())
         rooms_list = chat_room_query.fetch()
@@ -122,7 +117,7 @@ class ChatRoom (ndb.Expando):
         else:
             room_instance = ChatRoom()
             room_instance.chat_id = str(room_detail['chat_id']).lower()
-            room_instance.created_by = room_detail['room_detail']
+            room_instance.created_by = uid
             room_instance.name = room_detail['name']
             room_instance.description = room_detail['description']
             room_instance.put()
@@ -132,3 +127,9 @@ class ChatRoom (ndb.Expando):
         chat_room_query = ChatRoom.query()
         return chat_room_query.fetch()
 
+    def deleteChatRoom(self,uid,chat_id):
+        pass
+
+
+    def updateChatRoom(self,room_detail,uid,chat_id):
+        pass

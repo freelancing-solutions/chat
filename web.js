@@ -6,6 +6,8 @@ const socketio = require('@feathersjs/socketio');
 
 // chat requires
 const chat_utils = require('./chat-utils');
+const data_store = require('./datastore');
+const { response } = require("@feathersjs/express");
 
 
 //****************************************************************************** */
@@ -48,7 +50,7 @@ app.listen(PORT).on('listening', () => console.log(`Realtime server running on $
 app.io.on("connection", socket => {
   
   chat_utils.connections.push(socket);
-
+  
   // 
     
   // disconnect---here a user leaves a chat room---consider turning the user offline
@@ -69,48 +71,99 @@ app.io.on("connection", socket => {
   });
 
   // send message----here a user actually sends a message
-  socket.on("chat", data => {    
-    
-    chat_utils.sendMessage(data).then(results => {
-      chat_utils.fetchMessages(data).then(results => app.io.sockets.emit("chat", results))      
+  /**
+   * 
+   *    
+   * message_id = ndb.StringProperty()
+    chat_id = ndb.StringProperty()
+    uid = ndb.StringProperty()
+    message = ndb.StringProperty()
+    timestamp = ndb.IntegerProperty() # in millisecond
+    attachments = ndb.StringProperty()
+    archived = ndb.BooleanProperty(default=False)
+
+   */
+  socket.on("chat", data => {        
+    console.log('chat ', data);
+    data_store.onSendMessage(data).then(response => {
+      if (response.status){
+        data_store.onFetchMessages(response.payload.chat_id).then(response => {
+          if (response.status){
+            app.io.emit("chat", response.payload)
+          }
+        }).catch(error => {
+
+        })
+      }
+    }).catch(error => {
+
     });
+    
   });
 
   // TODO-rewrite this to broadcast only on my chat room
-  socket.on("typing", data => {    
-    app.io.sockets.emit("typing", data);
+  socket.on("typing", data => {
+        // use socket to emit the typing message to everyone presently dont work though
+        console.log('typing', data);
+    socket.broadcast.emit("typing", data);
   });
 
   // here a user joins a chat meaning the user gets added to a chat room
   socket.on("join", data => {
-    console.log('join message',data);
-    chat_utils.joinChatRoom(data).then((results) => {
-      app.io.sockets.emit("join", results);
+    const results = {status: false, payload : {}, error: {}}
+    console.log('calling join with', data);
+    data_store.onJoinChatRoom(data,data.chat_id).then(response => {      
+      socket.broadcast.emit("join", response);
+    }).catch(error => {
+        results.status = false;
+        results.error = {message: 'there was an error joining chat room'}
+        socket.emit("join", results);
     });
     
   });
   
   // this clears chat messages----needs to be revised
   socket.on("clear", data => {
-    console.log('clear message', data);
-    chat_utils.onClearMessages(data).then(results => {
-      app.io.sockets.emit("chat", results);
-    });    
+    
+    // TODO- to be implemented or soon to be deprecated
   });
 
   // on populate can fetch users list and messages list
   // todo make sure it fetches users list as well
   socket.on("populate", data => {
-    console.log('populate message',data);
-     chat_utils.fetchMessages(data).then(results => socket.emit("populate", results));      
+     const results = {status: true, payload : {users: [], messages : []}, error:{}} 
+     console.log('populate', data);
+     data_store.onFetchUsers(data.chat_id).then(response => {
+       if(response.status){         
+         results.payload.users = [...response.payload]
+         data_store.onFetchMessages(data.chat_id).then(response => {
+           if(response.status){             
+             results.payload.messages = [...response.payload]
+             results.status = true;
+             socket.emit("populate", results)
+           }
+         }).catch(error => {
+
+         })      
+       }
+     }).catch(error => {
+
+     })     
   });
 
   // this can fetch a list of users
   socket.on("users", data => {
     console.log('fetch a list of chat users',data);
-    chat_utils.onFetchUsers(data).then(results => socket.emit("users", results));
-  });
+    data_store.onFetchUsers(data.chat_id).then(response =>{
+      if (response.status){
+        socket.emit("users", response)
+      }
+    }).catch(error => {
+
+    })
 
 });
 
+
+})
 // // end of chat app

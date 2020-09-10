@@ -18,10 +18,8 @@ class APIRouterHandler(webapp2.RequestHandler):
 
         if 'room' in route:
 
-            chat_id = route[len(route) - 1]
-
             rooms_instance = ChatRoom()
-            room = rooms_instance.getChatRoom(chat_id=chat_id)
+            room = rooms_instance.getChatRoom(uid=route[len(route) - 1],chat_id=route[len(route) - 2])
             if room != '':
                 response_data = room.to_dict()
             else:
@@ -49,23 +47,13 @@ class APIRouterHandler(webapp2.RequestHandler):
         elif 'users' in route:
             chat_id = route[len(route) - 1]
             users_instance = ChatUsers()
-            users = users_instance.getChatUsers(chat_id=chat_id)
-
-            response_data = []
-
-            for user in users:
-                response_data.append(user.to_dict())
+            response_data = users_instance.getChatUsers(chat_id=chat_id)
 
         elif 'messages' in route:
             chat_id = route[len(route) - 1]
 
             messages_instance = ChatMessages()
-            messages = messages_instance.getChatMessages(chat_id=chat_id)
-
-            response_data = []
-            for message in messages:
-                response_data.append(message.to_dict())
-
+            response_data = messages_instance.getChatMessages(chat_id=chat_id)
         else:
             status_int = 401
             response_data = {'message':'could not understand request'}
@@ -89,12 +77,13 @@ class APIRouterHandler(webapp2.RequestHandler):
             room_detail = json.loads(self.request.body)
 
             room_instance = ChatRoom()
-            response = room_instance.addChatRoom(room_detail=room_detail)
+            response = room_instance.addChatRoom(room_detail=room_detail,uid=route[len(route) - 1])
             if response != '':
                 response_data = response.to_dict()
             else:
                 status_int = 401
                 response_data = {'message':'chat room already present'}
+                
         elif 'user' in route:
             user_details = json.loads(self.request.body)
 
@@ -109,7 +98,7 @@ class APIRouterHandler(webapp2.RequestHandler):
             message_detail = json.loads(self.request.body)
 
             messages_instance = ChatMessages()
-            response = messages_instance.addMessage(message_detail=message_detail)
+            response = messages_instance.addMessage(message_detail=message_detail,chat_id=route[len(route) - 1])
 
             if response != '':
                 response_data = response.to_dict()
@@ -127,8 +116,59 @@ class APIRouterHandler(webapp2.RequestHandler):
         self.response.write(json_data)
 
 
+    def put(self):
+        url_route = self.request.uri
+        url_routes = url_route.split("/")
+        route = url_routes
+
+        status_int = 200
+        if 'room' in route:
+            room_instance = ChatRoom()
+            response = room_instance.updateChatRoom(room_detail=json.loads(self.request.body),uid=route[len(route) - 1], chat_id=route[len(route) - 1])
+            if response != '':
+                response_data = response.to_dict()
+            else:
+                status_int = 401
+                response_data = {'message': 'cannot update chat room'}
+            
+        else:
+            status_int = 401
+            response_data = {'message': 'could not understand request'}
+
+
+        self.response.headers['Content-Type'] = "application/json"
+        self.response.status_int = status_int
+        json_data = json.dumps(response_data)
+        self.response.write(json_data)
+       
+
+    def delete(self):
+        url_route = self.request.uri
+        url_routes = url_route.split("/")
+        route = url_routes
+
+        status_int = 200
+        if 'room' in route:
+            room_instance = ChatRoom()
+            response = room_instance.deleteChatRoom()
+            if response != '':
+                response_data = response.to_dict()
+            else:
+                status_int = 401
+                response_data = {'message': 'cannot delete chat room'}
+            
+        else:
+            status_int = 401
+            response_data = {'message': 'could not understand request'}
+
+
+        self.response.headers['Content-Type'] = "application/json"
+        self.response.status_int = status_int
+        json_data = json.dumps(response_data)
+        self.response.write(json_data)
+       
 app = webapp2.WSGIApplication([
-    ('/api/.*', APIRouterHandler)
+    ('/api/v1/.*', APIRouterHandler)
 
 
 ], debug=True)

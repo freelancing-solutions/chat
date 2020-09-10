@@ -5,7 +5,8 @@
   "main": "web.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node web.js"
+    "start": "node web.js",
+    "dev" : "nodemon web.js"
   },
   "author": "justice ndou",
   "license": "ISC",
@@ -21,6 +22,6 @@
     "uuid": "^3.3.3"
   },
   "engines": {
-    "node": "10.15.3"
+    "node": "14.7.0"
   }
 }

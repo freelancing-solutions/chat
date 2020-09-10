@@ -8,9 +8,11 @@ from chat import ChatUsers, ChatRoom, ChatMessages
 
 
 
-# Archive Messages older than 72 hours
-# archived messages are not normally sent when messages are retrieved
 def archiveMessages():
+    """
+        # Archive Messages older than 72 hours
+        # archived messages are not normally sent when messages are retrieved
+    """
 
     messages_query = ChatMessages.query(ChatMessages.archived == False)
     messages_list = messages_query.fetch()

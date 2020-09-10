@@ -1,6 +1,6 @@
 
 
 handlers:
-- url: /api/.*
+- url: /api/v1/.*
   secure: always
   script: api.app

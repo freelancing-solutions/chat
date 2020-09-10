@@ -1,7 +1,6 @@
 
 const uuidv4 = require("uuid/v4");
 const axios = require("axios");
-
 const data_store = require('./datastore');
 
 const connections = [];
