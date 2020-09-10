@@ -108,9 +108,9 @@ app.io.on("connection", socket => {
   socket.on("typing", data => {
         // use socket to emit the typing message to everyone presently dont work though
         const results = {status : true, payload : {typing : {} , user : {}}, error: {}}
-        data.timestamp = Date.now() * 1000;
-        console.log('typing', data);
-        results.payload.typing = {...data};
+        data.payload.typing.timestamp = Date.now() * 1000;
+        data.payload.user.last_online = Date.now() * 1000;
+        results = {...data};        
         // get user from users list on the chat app
         socket.broadcast.emit("typing", results);
   });
