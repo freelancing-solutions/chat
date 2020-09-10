@@ -110,7 +110,9 @@ app.io.on("connection", socket => {
         const results = {status : true, payload : {typing : {} , user : {}}, error: {}}
         data.timestamp = Date.now() * 1000;
         console.log('typing', data);
-        socket.broadcast.emit("typing", data);
+        results.payload.typing = {...data};
+        // get user from users list on the chat app
+        socket.broadcast.emit("typing", results);
   });
 
   // here a user joins a chat meaning the user gets added to a chat room
