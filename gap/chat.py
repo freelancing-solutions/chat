@@ -1,4 +1,4 @@
-import os
+import os,time,string,random
 import webapp2
 import jinja2
 from google.appengine.ext import ndb
@@ -6,8 +6,18 @@ from google.appengine.api import users
 import json
 import logging
 
+class utilities(ndb.Expando):
+    _messages_limit = 100
+    @staticmethod
+    def create_id(size=64, chars=string.ascii_lowercase + string.digits):
+        return ''.join(random.choice(chars) for x in range(size))
 
-class ChatUsers(ndb.Expando):
+    @staticmethod
+    def create_timestamp():
+        return int(float(time.time())*1000)    
+        
+
+class ChatUsers(utilities):
     chat_id = ndb.StringProperty()
     uid = ndb.StringProperty()
     gravatar = ndb.StringProperty()
@@ -58,7 +68,7 @@ class ChatUsers(ndb.Expando):
         user_instance.put()
         return user_instance
 
-class ChatMessages(ndb.Expando):
+class ChatMessages(utilities):
     
     message_id = ndb.StringProperty()
     chat_id = ndb.StringProperty()
@@ -75,20 +85,21 @@ class ChatMessages(ndb.Expando):
         return [message.to_dict() for message in ChatMessages.query(ChatMessages.chat_id == str(chat_id).lower()).order(ChatMessages.timestamp).fetch(limit=100)]
 
     def addMessage(self,message_detail, chat_id):
-
+        import time
+        logging.info('adding message : {}'.format(message_detail))
         message_instance = ChatMessages()
-        message_instance.message_id = message_detail['message_id']
+        message_instance.message_id = self.create_id()
         message_instance.chat_id = str(message_detail['chat_id']).lower()
         message_instance.uid = message_detail['uid']
         message_instance.message = message_detail['message']
-        message_instance.timestamp =  message_detail['timestamp']
+        message_instance.timestamp =  self.create_timestamp()
         message_instance.attachments = message_detail['attachments']
         message_instance.archived = message_detail['archived']
         message_instance.put()
         logging.info('message saved {}'.format(message_instance))
         return message_instance
 
-class ChatRoom (ndb.Expando):
+class ChatRoom (utilities):
     chat_id = ndb.StringProperty()
     created_by = ndb.StringProperty()
     name = ndb.StringProperty()

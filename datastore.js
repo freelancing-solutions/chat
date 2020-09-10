@@ -148,7 +148,7 @@ const onSendMessage = async message => {
         });
 
         
-        return results.payload;
+        return results;
 };
 
 const onFetchMessages = async chat_id => {
@@ -171,7 +171,7 @@ const onFetchMessages = async chat_id => {
           results.error = {...error};
         });
 
-        return results.payload
+        return results;
 };
 
 
@@ -196,7 +196,7 @@ const onJoinChatRoom = async (user_detail,chat_id) => {
           results.payload = {},
           results.error = {...error}
         });
-        return results.payload;
+        return results;
 };
 
 
@@ -219,7 +219,7 @@ const onFetchUsers = async chat_id => {
           results.error = {...error};
         });
 
-        return results.payload
+        return results;
 };
 
 
@@ -244,7 +244,7 @@ const onCreateRoom = async room_detail => {
           results.payload = {};
           results.error = {error};
         });
-        return results.payload;
+        return results;
 };
 
 // fetch a specific chat room by chat id
