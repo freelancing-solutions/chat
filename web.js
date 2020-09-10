@@ -110,16 +110,7 @@ app.io.on("connection", socket => {
         const results = {status : true, payload : {typing : {} , user : {}}, error: {}}
         data.timestamp = Date.now() * 1000;
         console.log('typing', data);
-        data_store.onFetchUser(data.uid).then(response => {
-          if(response.status){
-            results.payload.user = {...response.payload};
-            results.payload.typing = {...data};                        
-          }
-          // if user not found then they didnt join this chat ... TODO- make sure users join chat no matter wwhat
-          socket.broadcast.emit("typing", data);
-        }).catch(error => {
-          
-        })        
+        socket.broadcast.emit("typing", data);
   });
 
   // here a user joins a chat meaning the user gets added to a chat room
