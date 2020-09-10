@@ -222,6 +222,27 @@ const onFetchUsers = async chat_id => {
         return results;
 };
 
+const onFetchUser = async uid => {
+  const api_router = endpoint_server + `/user/${uid}`;
+  const results = { status: true, payload: {}, error: {} };
+  
+  await axios.get(api_router).then(response => {
+    if(response.status === 2000){
+      return response.data;
+    }
+  }).then(user => {
+    results.status = true;
+    results.payload = {...user};
+    results.error = {};
+  }).catch(error => {
+    results.status = false;
+    results.payload = [];
+    results.error = {...error};
+  });
+
+  return results;
+}
+
 
 // room utils
 
@@ -281,6 +302,7 @@ module.exports = {
   onFetchMessages: onFetchMessages,
   onJoinChatRoom: onJoinChatRoom,
   onFetchUsers: onFetchUsers,
+  onFetchUser : onFetchUser,
   onCreateRoom: onCreateRoom,
   onFetchRoom: onFetchRoom
 };

@@ -107,8 +107,19 @@ app.io.on("connection", socket => {
   // TODO-rewrite this to broadcast only on my chat room
   socket.on("typing", data => {
         // use socket to emit the typing message to everyone presently dont work though
+        const results = {status : true, payload : {typing : {} , user : {}}, error: {}}
+        data.timestamp = Date.now() * 1000;
         console.log('typing', data);
-    socket.broadcast.emit("typing", data);
+        data_store.onFetchUser(data.uid).then(response => {
+          if(response.status){
+            results.payload.user = {...response.payload};
+            results.payload.typing = {...data};                        
+          }
+          // if user not found then they didnt join this chat ... TODO- make sure users join chat no matter wwhat
+          socket.broadcast.emit("typing", data);
+        }).catch(error => {
+          
+        })        
   });
 
   // here a user joins a chat meaning the user gets added to a chat room

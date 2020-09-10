@@ -43,6 +43,9 @@ class APIRouterHandler(webapp2.RequestHandler):
 
             if response != '':
                 response_data = response.to_dict()
+            else: 
+                status_int = 404
+                response_data = {'message' : 'user not found'}                
 
         elif 'users' in route:
             chat_id = route[len(route) - 1]
