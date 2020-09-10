@@ -6,9 +6,6 @@ var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 var port = process.env.PORT || 3000;
 
-server.listen(port, () => {
-  console.log('Server listening at port %d', port);
-});
 
 // Routing
 app.use(express.static(path.join(__dirname, 'public')));
@@ -29,12 +26,11 @@ const PORT = process.env.PORT || 5000;
 
 
 
-app.listen(PORT).on('listening', () => console.log(`Realtime server running on ${PORT}`));
+server.listen(PORT).on('listening', () => console.log(`Realtime server running on ${PORT}`));
 
 
-io.on("connection", socket => {
-    console.log('socket', socket);
-    chat_utils.connections.push(socket);
+io.on("connection", socket => {    
+    // chat_utils.connections.push(socket);
 
   
   // 
@@ -93,7 +89,7 @@ io.on("connection", socket => {
   socket.on("typing", data => {
         // use socket to emit the typing message to everyone presently dont work though
         console.log('typing', data);
-    socket.broadcast.emit("typing", data);
+    socket.broadcast.emit("typing", data);    
   });
 
   // here a user joins a chat meaning the user gets added to a chat room
