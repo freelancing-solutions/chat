@@ -7,7 +7,7 @@ const socketio = require('@feathersjs/socketio');
 // chat requires
 const chat_utils = require('./chat-utils');
 const data_store = require('./datastore');
-const { response } = require("@feathersjs/express");
+
 
 
 //****************************************************************************** */
@@ -48,7 +48,7 @@ app.listen(PORT).on('listening', () => console.log(`Realtime server running on $
 
 
 app.io.on("connection", socket => {
-
+    
   chat_utils.connections.push(socket);
 
   
