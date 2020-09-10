@@ -86,20 +86,16 @@ app.io.on("connection", socket => {
    */
   socket.on("chat", data => {        
     console.log('chat ', data);
-    data_store.onSendMessage(data).then(response => {
-      console.log('send message response ', response);
+    const results = {status : true, payload : {message : {}, user : {}}, error : {}}
+    results.payload = {...data.payload};
+    data_store.onSendMessage(data.payload.message).then(response => {
+      console.log('send message response ', response);      
       if (response.status){
-        data_store.onFetchMessages(response.payload.chat_id).then(response => {
-          console.log('fetch messages response', response);
-          if (response.status){
-            socket.broadcast.emit("chat", response.payload)
-          }
-        }).catch(error => {
-
-        })
+            results.payload.message = {...response.payload};
+            socket.broadcast.emit("chat", results);            
       }
     }).catch(error => {
-
+      
     });
     
   });
@@ -110,7 +106,7 @@ app.io.on("connection", socket => {
         const results = {status : true, payload : {typing : {} , user : {}}, error: {}}
         data.payload.typing.timestamp = Date.now() * 1000;
         data.payload.user.last_online = Date.now() * 1000;
-        results = {...data};        
+        results.payload = {...data.payload};        
         // get user from users list on the chat app
         socket.broadcast.emit("typing", results);
   });
