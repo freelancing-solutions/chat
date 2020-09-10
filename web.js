@@ -48,8 +48,9 @@ app.listen(PORT).on('listening', () => console.log(`Realtime server running on $
 
 
 app.io.on("connection", socket => {
-  
+    console.log('socket', socket);
   chat_utils.connections.push(socket);
+
   
   // 
     
@@ -91,7 +92,7 @@ app.io.on("connection", socket => {
         data_store.onFetchMessages(response.payload.chat_id).then(response => {
           console.log('fetch messages response', response);
           if (response.status){
-            socket.emit("chat", response.payload)
+            socket.broadcast.emit("chat", response.payload)
           }
         }).catch(error => {
 
