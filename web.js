@@ -91,7 +91,7 @@ app.io.on("connection", socket => {
         data_store.onFetchMessages(response.payload.chat_id).then(response => {
           console.log('fetch messages response', response);
           if (response.status){
-            app.io.emit("chat", response.payload)
+            socket.emit("chat", response.payload)
           }
         }).catch(error => {
 
