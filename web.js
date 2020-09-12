@@ -8,8 +8,6 @@ const socketio = require('@feathersjs/socketio');
 const chat_utils = require('./chat-utils');
 const data_store = require('./datastore');
 
-
-
 //****************************************************************************** */
 //****************************************************************************** */
 //****************************************************************************** */
@@ -35,29 +33,85 @@ app.configure(express.rest());
 
 // register services
 
-// app.use('/chat', new ChatService());
+/****
+ *
+ * Default Messages
+ */
 
-// new connections connect to stream
-app.on('connection', conn => app.channel('stream').join(conn));
+const user_joined_chat = (uid,socket) => {
+    const message = {
+            message_id : `${uid}485345`,
+            chat_id : "p-m",
+            uid : `${uid}`,
+            message : "....just joined chat",
+            timestamp : Date.now(),
+            attachments : [],
+            archived : false
+        };
+    const results = {status : true, payload : {message:{...message}}, error: {}};
+    socket.broadcast.emit("chat", results);
+};
 
-// publish to stream
-app.publish(data => app.channel('stream'));
 
+const user_left_chat = (uid,socket) => {
+    const message = {
+            message_id : `${uid}485345`,
+            chat_id : "p-m",
+            uid : `${uid}`,
+            message : "i left chat goodbye",
+            timestamp : Date.now(),
+            attachments : [],
+            archived : false
+        };
+    const results = {status : true, payload : {message:{...message}}, error: {}};
+    socket.broadcast.emit("chat", results);
+};
 
+const error_on_server_message = (uid,socket, error) => {
+    const message = {
+            message_id : `${uid}485345`,
+            chat_id : "p-m",
+            uid : `${uid}`,
+            message : `server error : ${error.message} please inform admin about this`,
+            timestamp : Date.now(),
+            attachments : [],
+            archived : false
+        };
+    const results = {status : true, payload : {message:{...message}}, error: {}};
+    socket.emit("chat", results);
+};
+
+app.use((socket, next) => {
+    let uid = socket.handshake.query.token;
+    if (uid === ''){
+        return next(new Error('cannot accept null token'));
+    }
+
+    if (chat_utils.connections.find(uid)){
+        return next(new Error('already connected'))
+    }
+
+    chat_utils.connections.push(uid);
+
+    return next();
+});
+
+/***
+ * starting server
+ */
 app.listen(PORT).on('listening', () => console.log(`Realtime server running on ${PORT}`));
 
+/***
+ * ap io listening for events
+ ***/
 
 app.io.on("connection", socket => {
     
-  chat_utils.connections.push(socket);
+    let uid = socket.handshake.query.token;
 
-  
-  // 
-    
   // disconnect---here a user leaves a chat room---consider turning the user offline
   socket.on("disconnect", data => {
-    chat_utils.connections.splice(chat_utils.connections.indexOf(socket), 1);
-    console.log("Disconnected : %s sockets connected", chat_utils.connections.length);
+    chat_utils.connections.splice(chat_utils.connections.indexOf(uid), 1);
   });
 
   // create chat room --- here a user creates a chat room---
@@ -68,64 +122,68 @@ app.io.on("connection", socket => {
 
   // fetches room data
   socket.on("get-room",data => {
-
+        //get-room should work
   });
 
-  // send message----here a user actually sends a message
-  /**
-   * 
-   *    
-   * message_id = ndb.StringProperty()
-    chat_id = ndb.StringProperty()
-    uid = ndb.StringProperty()
-    message = ndb.StringProperty()
-    timestamp = ndb.IntegerProperty() # in millisecond
-    attachments = ndb.StringProperty()
-    archived = ndb.BooleanProperty(default=False)
 
-   */
-  socket.on("chat", data => {        
-    console.log('chat ', data);
+  /**
+   *  on chat is where users actually sends chat messages
+   *
+   *
+   * */
+  socket.on("chat", data => {
     const results = {status : true, payload : {message : {}, user : {}}, error : {}}
     results.payload = {...data.payload};
     data_store.onSendMessage(data.payload.message).then(response => {
-      console.log('send message response ', response);      
+      console.log('send message response ', response);
       if (response.status){
             results.payload.message = {...response.payload};
-            socket.broadcast.emit("chat", results);            
+            socket.broadcast.emit("chat", results);
+            socket.emit("chat", results);
       }
     }).catch(error => {
-      
+      error_on_server_message(uid,socket,error);
     });
     
   });
 
-  // TODO-rewrite this to broadcast only on my chat room
+
+  /***
+     * on typing is where users gets status updates
+   ***/
   socket.on("typing", data => {
         // use socket to emit the typing message to everyone presently dont work though
-        const results = {status : true, payload : {typing : {} , user : {}}, error: {}}
-        data.payload.typing.timestamp = Date.now() * 1000;
-        data.payload.user.last_online = Date.now() * 1000;
+        const results = {status : true, payload : {typing : {} , user : {}}, error: {}};
+        data.payload.typing.timestamp = Date.now();
+        data.payload.user.last_online = Date.now();
         results.payload = {...data.payload};        
         // get user from users list on the chat app
         socket.broadcast.emit("typing", results);
+
   });
 
-  // here a user joins a chat meaning the user gets added to a chat room
+  /**
+   *
+   * on join is where users joins a chat room
+   *
+  ***/
   socket.on("join", data => {
-    const results = {status: false, payload : {}, error: {}}
-    console.log('calling join with', data);
-    data_store.onJoinChatRoom(data,data.chat_id).then(response => {      
-      socket.broadcast.emit("join", response);
+
+    data_store.onJoinChatRoom(data,data.chat_id).then(response => {
+      if (response.status){
+        socket.broadcast.emit("join", response);
+      }else{
+          error_on_server_message(uid,socket,{message: 'unable to join chat-room'});
+      }
     }).catch(error => {
-        results.status = false;
-        results.error = {message: 'there was an error joining chat room'}
-        socket.emit("join", results);
+        error_on_server_message(uid,socket,error);
     });
     
   });
-  
-  // this clears chat messages----needs to be revised
+
+   /***
+     * clears chat room messages can only be accessed by admins
+   ***/
   socket.on("clear", data => {
     
     // TODO- to be implemented or soon to be deprecated
@@ -134,27 +192,47 @@ app.io.on("connection", socket => {
   // on populate can fetch users list and messages list
   // todo make sure it fetches users list as well
   socket.on("populate", data => {
-     const results = {status: true, payload : {users: [], messages : []}, error:{}} 
+     const results = {status: true, payload : {users: [], messages : []}, error:{}};
      console.log('populate', data);
-     data_store.onFetchUsers(data.chat_id).then(response => {
-       if(response.status){         
-         results.payload.users = [...response.payload]
-         data_store.onFetchMessages(data.chat_id).then(response => {
-           if(response.status){             
-             results.payload.messages = [...response.payload]
-             results.status = true;
-             socket.emit("populate", results)
-           }
-         }).catch(error => {
-
-         })      
+     // consider adding user information on chat room
+     data_store.onJoinChatRoom(data,data.chat_id).then(response => {
+         console.log('response', response);
+       if (response.status){
+          data_store.onFetchUsers(data.chat_id).then(response => {
+              console.log('users : ',response);
+            if(response.status){         
+              results.payload.users = [...response.payload];
+      
+              data_store.onFetchMessages(data.chat_id).then(response => {
+                if(response.status){             
+                  results.payload.messages = [...response.payload];
+                  results.status = true;
+                  console.log('Emmiting messages', results);
+                  socket.emit("populate", results)
+                }
+              }).catch(error => {
+                // could not fetch chat messages
+                  error_on_server_message(uid,socket,error);
+              })      
+            }
+          }).catch(error => {
+              // could not retrieve user information
+              error_on_server_message(uid,socket,error);
+          })
+       }else{
+           error_on_server_message(uid,socket,{message: 'unable to join chat-room'});
        }
-     }).catch(error => {
 
-     })     
+     }).catch(error => {
+      //  could not join chat room
+         error_on_server_message(uid,socket,error);
+     })
+          
   });
 
-  // this can fetch a list of users
+  /***
+     * obtain a list of users here
+  ***/
   socket.on("users", data => {
     console.log('fetch a list of chat users',data);
     data_store.onFetchUsers(data.chat_id).then(response =>{
@@ -162,11 +240,12 @@ app.io.on("connection", socket => {
         socket.emit("users", response)
       }
     }).catch(error => {
-
+        error_on_server_message(uid,socket,error);
     })
 
 });
 
 
-})
+
+});
 // // end of chat app

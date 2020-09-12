@@ -12,7 +12,45 @@ const ChatRoom = require('./database');
 const ChatUsers = require('./database');
 const Messages =  require('./database');
 
+const chat_detail = {
+    chat_room : {
+        chat_id : "",
+        created_by : "",
+        name : "",
+        description : ""
+    },
+    messages : [],
+    users : [],
+    _max_users : []
+};
 
+const attachment_detail = {
+    download_url : "",
+    filename : "",
+    document_type : ""
+};
+
+const message_detail = {
+    message_id : "",
+    chat_id : "",
+    uid : "",
+    message : "",
+    timestamp : 0,
+    attachments : [],
+    archived : ""
+
+};
+
+const chat_user_detail = {
+    chat_id : "",
+    uid : "",
+    gravatar : "",
+    username : "",
+    online : false,
+    last_online : 0,
+    chat_revoked : false,
+    is_admin : true
+};
 
 const fetchChatRoom = async (uid,chat_id) => {
   

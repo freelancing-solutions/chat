@@ -2,4 +2,8 @@
 cron:
 - description: archive messages older than 72 hours
   url: /tasks/archive-messages
-  schedule: every 1 hour
+  schedule: every 180 minutes 
+  
+- description: delete messages older than 10 days
+  url: /tasks/delete-messages
+  schedule: every 12 hours

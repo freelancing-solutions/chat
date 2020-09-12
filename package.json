@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node web.js",
-    "dev": "nodemon web.js"
+    "dev": "nodemon --delay 2.5 ./web.js"
   },
   "author": "justice ndou",
   "license": "ISC",
