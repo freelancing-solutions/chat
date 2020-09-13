@@ -134,6 +134,142 @@ const populate_to_all = async (socket,chat_id,uid) => {
         return results
 };
 
+
+/***
+ *
+ * command_messages
+ */
+    const command_messages = [
+        {
+            message : '#pocket-link-home',
+            response : `Pocket Money ... <a href="../"><i class="fa fa-home"> </i> Home </a>`
+        },
+
+        {
+            message : '#pocket-link-about',
+            response : `Pocket Money About ... <a href="../about"><i class="fa fa-info"> </i> About </a>`
+        },
+
+        {
+            message : '#pocket-link-contact',
+            response : `Pocket Money Affiliate How to ... <a href="../contact"><i class="fa fa-envelope"> </i> Contact </a>`
+        },
+        {
+            message : '#pocket-link-affiliate',
+            response : `Pocket Money Affiliate How to ... <a href="../affiliate-instructions"><i class="fa fa-line-chart"> </i> Affiliate How To ? </a>`
+        },
+        {
+            message :'#pocket-link-affiliate-profiles',
+            response : `Pocket Money Affiliate Profiles ... <a href="../affiliates"><i class="fa fa-users"> </i> Affiliate Profiles </a>`
+        },
+        {
+            message : '#pocket-link-investment-plans',
+            response : `Pocket Money Sample Investment Plans ... <a href="../plans/p2p-investment-plans"><i class="fa fa-bar-chart"> </i> Sample Investment Plans </a>`
+        },
+        {
+            message :'#pocket-link-account',
+            response : `Pocket Money Account ... <a href="../admin-account"><i class="fa fa-sign-in"> </i> Account </a>`
+        },
+        {
+            message :'#pocket-link-wallet',
+            response : `Pocket Money Wallet ... <a href="../admin-wallet"><i class="fa fa-google-wallet"> </i> Wallet </a>`
+        },
+        {
+            message :'#pocket-link-deposit',
+            response : `Pocket Money Deposits ... <a href="../admin-wallet-deposit"><i class="fa fa-credit-card"> </i> Deposits </a>`
+        },
+        {
+            message :'#pocket-link-withdrawal',
+            response : `Pocket Money Withdrawals ... <a href="../admin-wallet-withdraw"><i class="fa fa-credit-card"> </i> Withdrawals </a>`
+        },
+        {
+            message :'#pocket-link-auto-investments',
+            response : 'Pocket Money Auto Investments ... <a href="../auto-investments"><i class="fa fa-bar-chart"> </i> Auto Investments </a>'
+        },
+        {
+            message :'#pocket-link-p2p-groups',
+            response : 'Pocket Money P2P Groups ... <a href="../p2p-groups"><i class="fa fa-users"> </i> P2P Groups </a>'
+        },
+        {
+            message :'#pocket-link-my-group-members',
+            response : 'Pocket Money P2P Group Members ... <a href="../p2p-members"><i class="fa fa-users"> </i> My P2P Group Members </a>'
+        },
+        {
+            message :'#pocket-link-funding-howto',
+            response : 'Pocket Money Funding How to ... <a href="../p2p-instructions"><i class="fa fa-money"> </i> Funding How to ? </a>'
+        },
+        {
+            message :'#pocket-link-edit-affiliate',
+            response : 'Pocket Money Edit Affiliate Profile ... <a href="../affiliate-program/"><i class="fa fa-line-chart"> </i> My Affiliate Profile </a>'
+        },
+        {
+            message :'#pocket-link-my-affiliate-profile',
+            response : 'Pocket Money My Affiliate Profile ... <a href="../affiliate-program/"><i class="fa fa-line-chart"> </i> My Affiliate Profile </a>'
+        },
+        {
+            message :'#pocket-link-blog',
+            response : 'Pocket Money Blog ... <a href="../blog"><i class="fa fa-book"> </i> Blog </a>'
+        },
+        {
+            message :'#pocket-link-create-post',
+            response : 'Pocket Money Blog Guest Post ... <a href="../blog/guest-blogging"><i class="fa fa-book"> </i> Create Post </a>'
+        },
+        {
+            message :'#pocket-link-news',
+            response : `Pocket Money News ... <a href="../news"><i class="fa fa-book"> </i> News </a>`
+        },
+        {
+            message :'#pocket-link-logout',
+            response :`Pocket Money Logout ... <a href="../logout"><i class="fa fa-sign-out"> </i> Log Out </a>`
+        },
+        {
+            message :'#pocket-link-login',
+            response : `Pocket Money Login ... <a href="../login"><i class="fa fa-sign-in"> </i> Sign In </a>`
+        },
+        {
+            message :'#pocket-link-signup',
+            response : `Pocket Money Sign Up ... <a href="../signup"><i class="fa fa-link"> </i> Sign Up </a>`
+        }
+
+    ];
+
+
+/***
+ *
+ * process commands and send response to user
+ */
+
+const process_command = (message) => {
+    for (const com_message of command_messages){
+        if (com_message.message === message.message.toLowerCase()){
+            return `${com_message.response} -- ${com_message.message}`
+        }
+    }
+    return message.message;
+};
+
+
+/**
+ *
+ * do message contain command
+ *
+ */
+
+const is_command = message => {
+
+    for (const com_message of command_messages){
+        if (com_message.message === message.message.toLowerCase()){
+            return true;
+        }
+    }
+    return false;
+};
+
+
+/***
+ * check if user has token
+ * TODO- in the future authroize the user token
+ */
 app.use((socket, next) => {
     let uid = socket.handshake.query.token;
     if (uid === ''){
@@ -143,9 +279,7 @@ app.use((socket, next) => {
     if (chat_utils.connections.find(uid)){
         return next(new Error('already connected'))
     }
-
     chat_utils.connections.push(uid);
-
     return next();
 });
 
@@ -157,6 +291,7 @@ app.listen(PORT).on('listening', () => console.log(`Realtime server running on $
 /***
  * ap io listening for events
  ***/
+
 
 app.io.on("connection", socket => {
     
@@ -187,15 +322,20 @@ app.io.on("connection", socket => {
   socket.on("chat", data => {
     const results = {status : true, payload : {message : {}, user : {}}, error : {}}
     results.payload = {...data.payload};
-    console.log(data.payload.message);
-    data_store.onSendMessage(data.payload.message).then(response => {
-      if (response.status){
-          populate_to_all(socket,data.payload.message.chat_id,data.payload.message.uid).then(response => console.log('done sending populate'))
-      }
-    }).catch(error => {
-      error_on_server_message(uid,socket,error);
-    });
-    
+
+
+    // check if message is command if yes then process command and send response
+        /*** its a command message*/
+        data.payload.message.message = process_command(data.payload.message);
+        /** its normal chat message */
+        data_store.onSendMessage(data.payload.message).then(response => {
+          if (response.status){
+              populate_to_all(socket,data.payload.message.chat_id,data.payload.message.uid).then(response => console.log('done sending populate'))
+          }
+        }).catch(error => {
+          error_on_server_message(uid,socket,error);
+        });
+
   });
 
 
