@@ -45,7 +45,10 @@ const user_joined_chat = (uid,socket) => {
             uid : `${uid}`,
             message : "....just joined chat",
             timestamp : Date.now(),
-            attachments : [],
+            attachments : {
+                filename : '',
+                url : ''
+            },
             archived : false
         };
     const results = {status : true, payload : {message:{...message}}, error: {}};
@@ -60,13 +63,22 @@ const user_left_chat = (uid,socket) => {
             uid : `${uid}`,
             message : "i left chat goodbye",
             timestamp : Date.now(),
-            attachments : [],
+            attachments : {
+                filename : '',
+                url : ''
+            },
             archived : false
         };
     const results = {status : true, payload : {message:{...message}}, error: {}};
     socket.broadcast.emit("chat", results);
 };
-
+/*****
+ *
+ *
+ * @param uid
+ * @param socket
+ * @param error
+ */
 const error_on_server_message = (uid,socket, error) => {
     const message = {
             message_id : `${uid}485345`,
@@ -74,11 +86,52 @@ const error_on_server_message = (uid,socket, error) => {
             uid : `${uid}`,
             message : `server error : ${error.message} please inform admin about this`,
             timestamp : Date.now(),
-            attachments : [],
+            attachments : {
+                filename : '',
+                url : ''
+            },
             archived : false
         };
     const results = {status : true, payload : {message:{...message}}, error: {}};
     socket.emit("chat", results);
+
+};
+
+
+/****
+ *
+ * Populate message
+ */
+
+const populate_to_all = async (socket,chat_id,uid) => {
+        let results = {status: true, payload : {users: [], messages : []}, error:{}};
+
+        await data_store.onFetchMessages(chat_id).then(response => {
+            if(response.status){
+              results.payload.messages = [...response.payload];
+            }
+        }).catch(error => {
+            // could not fetch chat messages
+              error_on_server_message(uid,socket,error);
+        });
+
+        await data_store.onFetchUsers(chat_id).then(users_response => {
+          console.log('is this users', users_response);
+        if (users_response.status){
+            results.payload.users = [...users_response.payload];
+        }
+        }).catch(error => {
+            // could not fetch chat messages
+              error_on_server_message(uid,socket,error);
+        });
+
+        results.status = true;
+
+        await socket.broadcast.emit("populate", results);
+
+        await socket.emit("populate", results);
+
+        return results
 };
 
 app.use((socket, next) => {
@@ -134,12 +187,10 @@ app.io.on("connection", socket => {
   socket.on("chat", data => {
     const results = {status : true, payload : {message : {}, user : {}}, error : {}}
     results.payload = {...data.payload};
+    console.log(data.payload.message);
     data_store.onSendMessage(data.payload.message).then(response => {
-      console.log('send message response ', response);
       if (response.status){
-            results.payload.message = {...response.payload};
-            socket.broadcast.emit("chat", results);
-            socket.emit("chat", results);
+          populate_to_all(socket,data.payload.message.chat_id,data.payload.message.uid).then(response => console.log('done sending populate'))
       }
     }).catch(error => {
       error_on_server_message(uid,socket,error);
@@ -187,6 +238,11 @@ app.io.on("connection", socket => {
   socket.on("clear", data => {
     
     // TODO- to be implemented or soon to be deprecated
+      if (data.is_admin){
+      //  implement this functionality
+      }else{
+          error_on_server_message(uid,socket,{message: 'you are not authorized to clear chat-room, ask admin'})
+      }
   });
 
   // on populate can fetch users list and messages list

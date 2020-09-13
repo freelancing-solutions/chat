@@ -36,7 +36,10 @@ const message_detail = {
     uid : "",
     message : "",
     timestamp : 0,
-    attachments : [],
+    attachments : {
+        filename : '',
+        url : ''
+    },
     archived : ""
 
 };
@@ -169,7 +172,7 @@ const onSendMessage = async message => {
         const chat_id = message.chat_id;
         const api_router = endpoint_server + `/message/${chat_id}`;
         const results = { status: true, payload: {}, error: {} };
-
+        console.log('sending message : ', message);
         await axios.post(api_router,JSON.stringify(message)).then(response => {
           if(response.status === 200){
             return response.data

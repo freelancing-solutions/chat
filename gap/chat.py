@@ -5,7 +5,7 @@ from google.appengine.ext import ndb
 from google.appengine.api import users
 import json
 import logging
-
+SIMPLE_TYPES = (int, long, float, bool, dict, basestring, list)
 
 class Utilities(ndb.Expando):
     _max_query_limit = 10000
@@ -21,6 +21,7 @@ class Utilities(ndb.Expando):
     def create_timestamp():
         return int(float(time.time())*1000)    
         
+
 
 class ChatUsers(Utilities):
     chat_id = ndb.StringProperty()
@@ -77,6 +78,11 @@ class ChatUsers(Utilities):
         chat_user_instance.put()
         return chat_user_instance
 
+class Attachments(Utilities):
+    message_id = ndb.StringProperty()
+    filename = ndb.StringProperty()
+    url = ndb.StringProperty()
+
 
 class ChatMessages(Utilities):
     
@@ -91,21 +97,55 @@ class ChatMessages(Utilities):
     def get_chat_message(self, chat_id):
 
         # ordering messages by the order in which they where sent
-        # TODO- include all limits and constants on constants utility        
-        return [message.to_dict() for message in ChatMessages.query(ChatMessages.chat_id == str(chat_id).lower()).order(ChatMessages.timestamp).fetch(limit=self._messages_limit)]
+        # TODO- include all limits and constants on constants utility
+        messages_list = ChatMessages.query(ChatMessages.chat_id == str(chat_id).lower()).order(ChatMessages.timestamp).fetch(limit=self._messages_limit)
+        messages = [message for message in messages_list]
+        payload = []
+
+        for message in messages:
+            attach = {'filename': '', 'url': '', 'message_id': ''}
+            response = message.to_dict()
+            if message.attachments == 'yes':
+                attachments = Attachments.query(Attachments.message_id == message.message_id).fetch()
+                if isinstance(attachments, list) and len(attachments) > 0:
+                    attach['filename'] = attachments[0].filename
+                    attach['url'] = attachments[0].url
+                    attach['message_id'] = attachments[0].message_id
+                    response['attachments'] = attach
+                else:
+                    response['attachments'] = attach
+            else:
+                response['attachments'] = attach
+
+            payload.append(response)
+
+        return payload
 
     def add_message(self, message_detail, chat_id):
 
         try:
             logging.info('receving this message : {}'.format(message_detail))
+            uid = str(message_detail['uid']).strip()
 
+            if uid == '':
+                return ""
             message_instance = ChatMessages()
             message_instance.message_id = self.create_id()
-            message_instance.chat_id = str(message_detail['chat_id']).lower()
-            message_instance.uid = message_detail['uid']
-            message_instance.message = message_detail['message']
+            message_instance.chat_id = str(message_detail['chat_id']).encode('utf-8').lower()
+            message_instance.uid = uid
+            message_instance.message = message_detail['message'].encode('utf-8')
             message_instance.timestamp = self.create_timestamp()
-            message_instance.attachments = message_detail['attachments']
+            attachments = message_detail['attachments']
+            if (attachments['url'] != '') and (attachments['filename'] != ''):
+                attachment_instance = Attachments()
+                attachment_instance.url = attachments['url'].encode('utf-8')
+                attachment_instance.filename = attachments['filename'].encode('utf-8')
+                attachment_instance.message_id = message_instance.message_id
+                attachment_instance.put()
+                message_instance.attachments = 'yes'
+            else:
+                message_instance.attachments = 'no'
+
             message_instance.archived = False
             message_instance.put()
             
