@@ -89,7 +89,7 @@ class ChatMessages(Utilities):
     message_id = ndb.StringProperty()
     chat_id = ndb.StringProperty()
     uid = ndb.StringProperty()
-    message = ndb.StringProperty()
+    message = ndb.TextProperty()
     timestamp = ndb.IntegerProperty(default=0) # in millisecond
     attachments = ndb.StringProperty()
     archived = ndb.BooleanProperty(default=False)

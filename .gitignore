@@ -13,6 +13,8 @@
 
 # production
 /build
+/venv
+/config
 /config/default.json
 
 # misc

@@ -1,4 +1,4 @@
 {
-  "watch" : ["datastore.js", "chat-utils.js", "channels.js", "index.html", "redis-utils.js", "web.js", "package.json", "views", "gap", "database", "config" ],
+  "watch" : ["datastore.js", "chat-utils.js", "channels.js", "index.html", "redis-utils.js", "web.js", "pocket-money.bot.js", "package.json", "views", "gap", "database", "config" ],
   "ext" : "js, html, css, json, py, yaml"
 }
