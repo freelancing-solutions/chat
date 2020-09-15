@@ -214,14 +214,16 @@ app.io.on("connection", socket => {
         if (check_for_command(processed_message.message.message)){
             pocket_bot.process_command(processed_message.message).then(message => {
                 processed_message.message.message = message;
-                /** now actually send the message to the backend server **/
+
+                /** memoizing message on local datastructure **/
                 const stored_message = data_store.chat_detail.add_message(processed_message.message);
                 results.status = true;
                 results.payload = {...stored_message};
+                /** broadcasting message to all chat sessions **/
                 app.io.sockets.emit('chat', results);
 
+                /*** sending messages to google app engine datastore **/
                 data_store.onSendMessage(stored_message).then(response => {
-
                 }).catch(error => {
                     error_on_server_message(uid, socket, error);
                 });
