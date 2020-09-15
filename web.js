@@ -111,17 +111,17 @@ const error_on_server_message = (uid,socket, error) => {
 
 const populate_to_all = async (app,socket,chat_id,uid) => {
         let results = {status: true, payload : {users: [], messages : []}, error:{}};
-        console.log('running populate')
+
         await data_store.onFetchMessages(chat_id).then(response => {
             if(response.status){
-              console.log('fetch messages response', response);
+
               results.payload.messages = [...response.payload];
             data_store.onFetchUsers(chat_id).then(users_response => {
             if (users_response.status){
-                console.log('fetch responses response', response);
+
                 results.payload.users = [...users_response.payload];
                 results.status = true;
-                console.log('running populate',results);
+
                 app.io.sockets.emit('populate', results);
             }
             }).catch(error => {
@@ -221,7 +221,7 @@ app.io.on("connection", socket => {
                 app.io.sockets.emit('chat', results);
 
                 data_store.onSendMessage(stored_message).then(response => {
-                    console.log(response);
+
                 }).catch(error => {
                     error_on_server_message(uid, socket, error);
                 });
@@ -235,7 +235,7 @@ app.io.on("connection", socket => {
             app.io.sockets.emit('chat', results);
 
             data_store.onSendMessage(processed_message.message).then(response => {
-                console.log('repsonse',response)
+
             }).catch(error => {
                 error_on_server_message(uid, socket, error);
             });
@@ -289,13 +289,13 @@ app.io.on("connection", socket => {
   // todo make sure it fetches users list as well
   socket.on("populate", data => {
      const results = {status: true, payload : {users: [], messages : []}, error:{}};
-     console.log('populate', data);
+
      // consider adding user information on chat room
      data_store.onJoinChatRoom(data,data.chat_id).then(response => {
-         console.log('response', response);
+
        if (response.status){
           data_store.onFetchUsers(data.chat_id).then(response => {
-              console.log('users : ',response);
+
             if(response.status){         
               results.payload.users = [...response.payload];
       
@@ -331,7 +331,7 @@ app.io.on("connection", socket => {
      * obtain a list of users here
   ***/
   socket.on("users", data => {
-    console.log('fetch a list of chat users',data);
+
     data_store.onFetchUsers(data.chat_id).then(response =>{
       if (response.status){
         socket.emit("users", response)
