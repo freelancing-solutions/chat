@@ -1,33 +1,171 @@
 const axios = require('axios');
 const config = require('config');
-const mongodb = require('mongodb');
-
+const {v4: uuidv4} = require("uuid");
 
 // use admin_uid to create new chat_room
 const endpoint_server = process.env.STORE_ENDPOINT_SERVER || config.get('STORE_ENDPOINT_SERVER');
 const admin_uid = process.env.ADMIN_USER || config.get("ADMIN_USER");
 
-const connectDB = require('./database');
-const ChatRoom = require('./database');
-const ChatUsers = require('./database');
-const Messages =  require('./database');
+Array.prototype.contains_message = function(message) {
+  for (var i = 0; i < this.length; i++) {
+    if (this[i].message_id === message.message_id) return true;
+  }
+  return false;
+};
 
-const chat_detail = {
-    chat_room : {
+Array.prototype.unique_message = function() {
+  var arr = [];
+  for (var i = 0; i < this.length; i++) {
+    if (!arr.contains_message(this[i])) {
+      arr.push(this[i]);
+    }
+  }
+  return arr;
+}
+
+function chat_instance(){
+    this.chat_room = {
         chat_id : "",
         created_by : "",
         name : "",
         description : ""
-    },
-    messages : [],
-    users : [],
-    _max_users : []
+    };
+    this.messages = [];
+    this.users = [];
+    this.connections = [];
+    this._max_users = 1000;
+    this._max_messages = 10000;
+    this.read_promises = [];
+    this.write_promises = [];
+
+
+    this.setup_chat_room = (chat_room) => {
+        this.chat_room.chat_id = chat_room.chat_id;
+        this.chat_room.created_by = chat_room.created_by;
+        this.chat_room.name = chat_room.name;
+        this.chat_room.description = chat_room.description;
+        /*** store chatroom data to storage ***/
+
+        return this.chat_room;
+    };
+
+    this.get_room = () => {
+        if (this.chat_room.chat_id){
+            return this.chat_room;
+        }else{
+            /*** fetch chatroom data from storage ***/
+        }
+
+    };
+    this._add_store_message  = (message) => {
+        if(Array.isArray(this.messages) && (this.messages.length < this._max_messages)){
+            this.messages = this.messages.concat(message);
+            this.messages = this.messages.unique_message();
+        }
+    };
+    this.add_message = (message) => {
+        // if((Array.isArray(this.messages)) && (this.messages.length > this._max_messages)){
+        //     for (let i = 0; i < Math.floor(this._max_messages/2); i++){
+        //         this.write_promises.push(onSendMessage(this.messages.shift()))
+        //     }
+        // } TODO- i might use this function when buffer is full
+
+        message.message_id = uuidv4();
+        message.timestamp = Date.now(); /*** time already in millisends ***/
+        if (message.attachments.url !== ""){
+            message.attachments.message_id = message.message_id;
+        }
+
+        this.messages.push(message);
+        console.log('messages length : ', this.messages.length);
+        return message;
+    };
+
+
+    this.read_messages = () => {
+      if (Array.isArray(this.messages) && (this.messages.length > 0)){
+          if (this.messages.length < Math.floor(this._max_messages / 2)){
+              return this.messages
+          }else{
+              let start = this.messages.length - Math.floor(this._max_messages / 2);
+              let end = this.messages.length - 1;
+              return this.messages.slice(start, end)
+          }
+      }else{
+          this.read_promises.push(onFetchMessages(this.chat_room.chat_id));
+      }
+    };
+
+    this._add_store_users = user => {
+       let existing_user = this.users.find(user => user.uid === user.uid)
+        if (existing_user && user.username){
+            existing_user.username = user.username;
+            existing_user.online = user.online;
+            existing_user.last_online = user.last_online;
+            existing_user.chat_revoked = user.chat_revoked;
+            existing_user.is_admin = user.is_admin;
+        }
+        let temp_users = this.users.filter( user => user.uid === existing_user.uid);
+        temp_users.push(existing_user);
+        this.users = temp_users
+    };
+
+
+    this.add_user = (user) => {
+        let existing_user = this.users.find(user => user.uid === user.uid)
+        if (existing_user && user.username){
+            existing_user.username = user.username;
+            existing_user.online = user.online;
+            existing_user.last_online = user.last_online;
+            existing_user.chat_revoked = user.chat_revoked;
+            existing_user.is_admin = user.is_admin;
+        }
+        let temp_users = this.users.filter( user => user.uid === existing_user.uid);
+        temp_users.push(existing_user);
+        this.users = temp_users
+        this.write_promises.push(onJoinChatRoom(existing_user,existing_user.chat_id));
+        return existing_user
+    };
+    this.read_users = () => {
+        if(Array.isArray(this.users)){
+            return this.users
+        }
+        return [];
+    };
+    this.add_connection = (uid,socket) => {
+        let connection = {
+            uid : '',
+            socket : ''
+        }
+      if(Array.isArray(this.connections) && (this.connections.find(connection => connection.uid === uid))){
+           return false;
+       }
+       connection.uid = uid;
+       connection.socket = socket;
+       this.connections.push(connection);
+       return true;
+    };
+    this.remove_connection = (uid) => {
+        if (Array.isArray(this.connections)){
+            this.connections = this.connections.filter(connection => connection.uid === uid)
+        }
+
+    };
+    this.get_connection = (uid) => {
+        if (Array.isArray(this.connections) && (this.connections.length > 0)){
+            let this_connection = this.connections.find(connection => connection.uid === uid);
+            if (this_connection){return this_connection}
+        }
+        return ""
+    }
 };
 
+let chat_detail = new chat_instance();
+
 const attachment_detail = {
-    download_url : "",
-    filename : "",
-    document_type : ""
+        message_id : '',
+        filename : '',
+        url : ''
 };
 
 const message_detail = {
@@ -37,6 +175,7 @@ const message_detail = {
     message : "",
     timestamp : 0,
     attachments : {
+        message_id : '',
         filename : '',
         url : ''
     },
@@ -54,6 +193,9 @@ const chat_user_detail = {
     chat_revoked : false,
     is_admin : true
 };
+
+
+
 
 const fetchChatRoom = async (uid,chat_id) => {
   
@@ -172,7 +314,7 @@ const onSendMessage = async message => {
         const chat_id = message.chat_id;
         const api_router = endpoint_server + `/message/${chat_id}`;
         const results = { status: true, payload: {}, error: {} };
-        console.log('sending message : ', message);
+
         await axios.post(api_router,JSON.stringify(message)).then(response => {
           if(response.status === 200){
             return response.data
@@ -185,7 +327,7 @@ const onSendMessage = async message => {
         }).catch(error => {
           results.status = false;
           results.error ={...error};
-          results.payload = {}
+          results.payload = {...message}
         });
 
         
@@ -194,24 +336,29 @@ const onSendMessage = async message => {
 
 const onFetchMessages = async chat_id => {
         const api_router = endpoint_server + `/messages/${chat_id}`;
-        const results = { status: true, payload: {}, error: {} };
+        const results = { status: true, payload: [], error: {} };
 
-        await axios.get(api_router).then(response => {
-          if(response.status === 200){
-            return response.data
-          }
-          throw new Error('error fetching messages')
-        }).then(messages => {
-          // console.log('returned messages',messages);
-          results.status = true;
-          results.payload = [...messages];
-          results.error = {}
-        }).catch(error => {
-          results.status = false;
-          results.payload = [];
-          results.error = {...error};
-        });
-
+        if ( Array.isArray(chat_detail.messages) && (chat_detail.messages.length < chat_detail._max_messages)){
+            await axios.get(api_router).then(response => {
+                if (response.status === 200) {
+                    return response.data
+                }
+                throw new Error('error fetching messages')
+            }).then(messages => {
+                // console.log('returned messages',messages);
+                results.status = true;
+                results.payload = [...messages];
+                results.error = {}
+            }).catch(error => {
+                results.status = false;
+                results.payload = [];
+                results.error = {...error};
+            });
+            results.payload.forEach(message => chat_detail._add_store_message(message));
+            results.payload = [...chat_detail.messages];
+        }else{
+            results.payload = [...chat_detail.messages];
+        }
         return results;
 };
 
@@ -259,7 +406,7 @@ const onFetchUsers = async chat_id => {
           results.payload = [];
           results.error = {...error};
         });
-
+        // results.payload.forEach(user => chat_detail._add_store_users(user));
         return results;
 };
 
@@ -333,6 +480,8 @@ const onFetchRoom = async chat_id => {
 };
 
 
+
+
 module.exports = {
   store: storeChatRoom,
   fetch: fetchChatRoom,
@@ -345,5 +494,6 @@ module.exports = {
   onFetchUsers: onFetchUsers,
   onFetchUser : onFetchUser,
   onCreateRoom: onCreateRoom,
-  onFetchRoom: onFetchRoom
+  onFetchRoom: onFetchRoom,
+  chat_detail: chat_detail
 };

@@ -1,15 +1,16 @@
 const axios = require('axios');
 const config = require('config');
 const templates = require('./bot_templates');
+/*** loading emojis ***/
 
-
-
+const fs = require('fs');
+let rawdata = fs.readFileSync('emoji.json');
+let emojis = JSON.parse(rawdata);
+// console.log(emojis);
 /***
  * implement a message router - which allow me to send messages to specific users only
  * @type {{message: string, response: string}[]}
  ***/
-
-
 const user_directed_messages = [
     {
         message : '#admin-',
@@ -42,31 +43,31 @@ const user_directed_messages = [
 const active_command_message = [
     {
         message : '#active-com-balance',
-        action : `/api/bot/v1/active-com/balance/`, /** {uid}/{key} **/
+        action : `/api/bot/v1/active-com/balance`, /** {uid}/{key} **/
         response : `not yet implemented - inform admin`  /** return balance here **/
     },
     {
         message : '#active-com-affiliate-income',
-        action : `/api/bot/v1/active-com/affiliate-income/`, /** {uid}/{key} **/
+        action : `/api/bot/v1/active-com/affiliate-income`, /** {uid}/{key} **/
         response : `not yet implemented - inform admin`  /** return affiliate income here **/
     },
     {
         message : '#active-com-reserved',
-        action : `/api/bot/v1/active-com/reserved-withdrawal/`, /** {uid}/{key} **/
+        action : `/api/bot/v1/active-com/reserved-withdrawal`, /** {uid}/{key} **/
         response: `not yet implemented - inform admin` /** return reserved for withdrawal here **/
     },
     {
         message : '#active-com-remaining-withdrawals',
-        action: `/api/bot/v1/active-com/remaining-withdrawal-requests/`, /** {uid}/{key} **/
+        action: `/api/bot/v1/active-com/remaining-withdrawal-requests`, /** {uid}/{key} **/
         response : `not yet implemented - inform admin` /** return remaining withdrawal-requests here **/
     },
     {
-        message : '#/active-com-my-recruits',
-        action: `/api/bot/v1/active-com/my-recruits/`, /** {uid}/{key} **/
+        message : '#active-com-my-recruits',
+        action: `/api/bot/v1/active-com/my-recruits`, /** {uid}/{key} **/
         response : `not yet implemented - inform admin` /** return total number of recruits and list of recruits **/
     },
     {
-        message : '#/active-com-total-recruits',
+        message : '#active-com-total-recruits',
         action: `/api/bot/v1/active-com/total-recruits`, /** {uid}/{key} **/
         response: `not yet implemented - inform admin` /** return total number of recruits in your downline **/
     }
@@ -223,31 +224,64 @@ const process_command = async (message) => {
     console.log(message);
     const internal_key = process.env.INTERNAL_KEY || config.get('INTERNAL_KEY');
     const results = {status: false, payload: {}, error: {}};
+    results.payload = message.message; /** this prevents an error if the message is not a command **/
     /*** link commands ***/
-    for (const com_message of link_command_messages){
-        if (com_message.message === message.message.toLowerCase().trim()){
-            results.payload = `${com_message.response} -- ${com_message.message}`
+    if (message.message.toLowerCase().startsWith('#pocket')){
+        for (const com_message of link_command_messages){
+            if (com_message.message === message.message.toLowerCase().trim()){
+                results.payload = `${com_message.response} -- ${com_message.message}`
+                break;
+            }
         }
     }
 
     /*** document dumps ***/
-    for (const com_message of document_dumps_messages){
-        if (com_message.message === message.message.toLowerCase().trim()){
-            results.payload = com_message.response
+    if (message.message.toLowerCase().startsWith("#docu")) {
+        for (const com_message of document_dumps_messages) {
+            if (com_message.message === message.message.toLowerCase().trim()) {
+                results.payload = com_message.response
+                break;
+            }
         }
     }
     /*** action messages **/
-    for (const com_action of active_command_message){
-        if (com_action.message === message.message.toLowerCase().trim()){
-            console.log('inside active command',message);
-            await perform_active_command_action(message.uid,`${com_action.action}${message.uid}/${internal_key}`).then(response => {
+    if (message.message.toLowerCase().startsWith("#active-com")) {
+        for (const com_action of active_command_message) {
+            if (com_action.message === message.message.toLowerCase().trim()) {
+                console.log('inside active command', message);
+                await perform_active_command_action(message.uid, `${com_action.action}/${message.uid}/${internal_key}`).then(response => {
+                    results.payload = response.payload
 
-                console.log('message : ',response.payload);
-                results.payload = response.payload
+                }).catch(error => {
+                    results.payload = `${message.message} : error : ${error.message}`
+                });
+                break;
 
-            }).catch(error => {
-                results.payload = `${message.message} : error : ${error.message}`
-            })
+            }
+        }
+    }
+
+    /** emojis **/
+    if(message.message.toLowerCase().startsWith("#emoji-")){
+        if ('#emoji-list-smileys' === message.message.toLowerCase().trim()){
+            let list = [];
+            for (const emoji of emojis){
+                if (emoji.category.toLowerCase().startsWith('smileys')){
+                    list.push(`${emoji.char} search terms :  ${emoji.name} , or : ${emoji.codes}`)
+                }
+            }
+            results.payload = list;
+        }else {
+            for (const emoji of emojis) {
+                if (`#emoji-${emoji.codes.trim()}` === message.message.toLowerCase().trim()) {
+                    results.payload = emoji.char;
+                    break;
+                }
+                if (`'#emoji-${emoji.name.trim()}` === message.message.toLowerCase().trim()) {
+                    results.payload = emoji.char;
+                    break;
+                }
+            }
         }
     }
 
@@ -262,21 +296,22 @@ const perform_active_command_action = async (uid,action_url) => {
     const base_url = config.get('BASE_URL') || process.env.BASE_URL ;
     const request_url = base_url + action_url;
 
-
+    console.log('launching active commands', uid , action_url);
     await axios.get(request_url).then(response => {
         if(response.status === 200){
             return response.data;
         }
-        throw new Error('error perfoming active command action')
+        throw new Error('error performing active command action')
     }).then(response => {
-        console.log('AXIOS RESPONSE', response);
-        results = {...response}
+        console.log('response : ',response.payload)
+        results.payload = `<span class="text text-blue">${JSON.stringify(response.payload)}</span>`;
+        results.status = response.status;
+        results.error = {...response.error};
     }).catch(error => {
+        console.log('we are getting this error : ',error.message)
         results.status = false;
         results.error =  {...error};
-
     });
-
     return results;
 };
 

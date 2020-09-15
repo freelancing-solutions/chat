@@ -98,7 +98,7 @@ class ChatMessages(Utilities):
 
         # ordering messages by the order in which they where sent
         # TODO- include all limits and constants on constants utility
-        messages_list = ChatMessages.query(ChatMessages.chat_id == str(chat_id).lower()).order(ChatMessages.timestamp).fetch(limit=self._messages_limit)
+        messages_list = ChatMessages.query(ChatMessages.chat_id == str(chat_id).lower()).order(ChatMessages.timestamp).fetch(limit=self._max_query_limit)
         messages = [message for message in messages_list]
         payload = []
 
@@ -130,11 +130,13 @@ class ChatMessages(Utilities):
             if uid == '':
                 return ""
             message_instance = ChatMessages()
-            message_instance.message_id = self.create_id()
+            if message_detail['message_id'] == "":
+                message_instance.message_id = self.create_id()
             message_instance.chat_id = str(message_detail['chat_id']).encode('utf-8').lower()
             message_instance.uid = uid
             message_instance.message = message_detail['message'].encode('utf-8')
-            message_instance.timestamp = self.create_timestamp()
+            if message_detail['timestamp'] == 0:
+                message_instance.timestamp = self.create_timestamp()
             attachments = message_detail['attachments']
             if (attachments['url'] != '') and (attachments['filename'] != ''):
                 attachment_instance = Attachments()

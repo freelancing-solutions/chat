@@ -47,6 +47,7 @@ const user_joined_chat = (uid,socket) => {
             message : "....just joined chat",
             timestamp : Date.now(),
             attachments : {
+                message_id : '',
                 filename : '',
                 url : ''
             },
@@ -56,7 +57,11 @@ const user_joined_chat = (uid,socket) => {
     socket.broadcast.emit("chat", results);
 };
 
-
+/**
+ * user left chat messages
+ * @param uid
+ * @param socket
+ */
 const user_left_chat = (uid,socket) => {
     const message = {
             message_id : `${uid}485345`,
@@ -65,6 +70,7 @@ const user_left_chat = (uid,socket) => {
             message : "i left chat goodbye",
             timestamp : Date.now(),
             attachments : {
+                message_id : '',
                 filename : '',
                 url : ''
             },
@@ -99,41 +105,49 @@ const error_on_server_message = (uid,socket, error) => {
 };
 
 
-/****
- *
+/**
  * Populate message
- */
+ **/
 
-const populate_to_all = async (socket,chat_id,uid) => {
+const populate_to_all = async (app,socket,chat_id,uid) => {
         let results = {status: true, payload : {users: [], messages : []}, error:{}};
-
+        console.log('running populate')
         await data_store.onFetchMessages(chat_id).then(response => {
             if(response.status){
+              console.log('fetch messages response', response);
               results.payload.messages = [...response.payload];
+            data_store.onFetchUsers(chat_id).then(users_response => {
+            if (users_response.status){
+                console.log('fetch responses response', response);
+                results.payload.users = [...users_response.payload];
+                results.status = true;
+                console.log('running populate',results);
+                app.io.sockets.emit('populate', results);
+            }
+            }).catch(error => {
+                // could not fetch chat messages
+                  error_on_server_message(uid,socket,error);
+            });
+
             }
         }).catch(error => {
             // could not fetch chat messages
               error_on_server_message(uid,socket,error);
         });
 
-        await data_store.onFetchUsers(chat_id).then(users_response => {
-          console.log('is this users', users_response);
-        if (users_response.status){
-            results.payload.users = [...users_response.payload];
-        }
-        }).catch(error => {
-            // could not fetch chat messages
-              error_on_server_message(uid,socket,error);
-        });
-
-        results.status = true;
-
-        await socket.broadcast.emit("populate", results);
-
-        await socket.emit("populate", results);
-
+        // await socket.broadcast.emit("populate", results);
+        // await socket.emit("populate", results);
         return results
 };
+
+/**** fast check for command **/
+
+const check_for_command = message => {
+    if (message.startsWith('#')){
+        return true;
+    }
+    return false;
+}
 
 
 /***
@@ -145,12 +159,10 @@ app.use((socket, next) => {
     if (uid === ''){
         return next(new Error('cannot accept null token'));
     }
-
-    if (chat_utils.connections.find(uid)){
-        return next(new Error('already connected'))
+    if (data_store.chat_detail.add_connection(uid,socket)){
+        return next();
     }
-    chat_utils.connections.push(uid);
-    return next();
+    return next(new Error('already connected'))
 });
 
 /***
@@ -169,49 +181,65 @@ app.io.on("connection", socket => {
 
   // disconnect---here a user leaves a chat room---consider turning the user offline
   socket.on("disconnect", data => {
-    chat_utils.connections.splice(chat_utils.connections.indexOf(uid), 1);
+    data_store.chat_detail.remove_connection(uid);
+        // send message to other open connections informing them that the other user left
+        // remove the user users list, and rebroadcast the users list
   });
 
   // create chat room --- here a user creates a chat room---
 
   socket.on("create-room", data => {
-
+      const chat_room = data_store.chat_detail.setup_chat_room(data);
+      app.io.sockets.emit('get-room', chat_room);
   });
 
   // fetches room data
   socket.on("get-room",data => {
-        //get-room should work
+       const chat_room = data_store.chat_detail.get_room()
+      socket.emit("get-room", chat_room);
   });
 
 
   /**
    *  on chat is where users actually sends chat messages
-   *
-   *
    * */
   socket.on("chat", data => {
-    const results = {status : true, payload : {message : {}, user : {}}, error : {}}
+    const results = {status : true, payload : {}, error : {}}
     results.payload = {...data.payload};
 
         let processed_message = data.payload;
-        console.log('Payload Data', processed_message);
-    // check if message is command if yes then process command and send response
-        /*** its a command message*/
-        pocket_bot.process_command(processed_message.message).then(message => {
-            processed_message.message.message = message;
 
+        /*** check if message is command if yes then process command and send response **/
+        /*** its a command message **/
+        if (check_for_command(processed_message.message.message)){
+            pocket_bot.process_command(processed_message.message).then(message => {
+                processed_message.message.message = message;
+                /** now actually send the message to the backend server **/
+                const stored_message = data_store.chat_detail.add_message(processed_message.message);
+                results.status = true;
+                results.payload = {...stored_message};
+                app.io.sockets.emit('chat', results);
 
-            /** its normal chat message */
+                data_store.onSendMessage(stored_message).then(response => {
+                    console.log(response);
+                }).catch(error => {
+                    error_on_server_message(uid, socket, error);
+                });
+            })
+
+        }else{
+
+            const stored_message = data_store.chat_detail.add_message(processed_message.message);
+            results.status = true;
+            results.payload = {...stored_message};
+            app.io.sockets.emit('chat', results);
+
             data_store.onSendMessage(processed_message.message).then(response => {
-                if (response.status) {
-                    populate_to_all(socket, processed_message.message.chat_id, processed_message.message.uid).then(response => console.log('done sending populate'))
-                }
+                console.log('repsonse',response)
             }).catch(error => {
                 error_on_server_message(uid, socket, error);
             });
-
-        })
-
+        }
   });
 
 
@@ -219,20 +247,17 @@ app.io.on("connection", socket => {
      * on typing is where users gets status updates
    ***/
   socket.on("typing", data => {
-        // use socket to emit the typing message to everyone presently dont work though
+        /*** use socket to emit the typing message to everyone presently dont work though **/
         const results = {status : true, payload : {typing : {} , user : {}}, error: {}};
         data.payload.typing.timestamp = Date.now();
         data.payload.user.last_online = Date.now();
         results.payload = {...data.payload};        
-        // get user from users list on the chat app
+        /** sending on typing event to everyone else except the user typing **/
         socket.broadcast.emit("typing", results);
-
   });
 
   /**
-   *
    * on join is where users joins a chat room
-   *
   ***/
   socket.on("join", data => {
 
@@ -252,7 +277,6 @@ app.io.on("connection", socket => {
      * clears chat room messages can only be accessed by admins
    ***/
   socket.on("clear", data => {
-    
     // TODO- to be implemented or soon to be deprecated
       if (data.is_admin){
       //  implement this functionality
@@ -279,7 +303,8 @@ app.io.on("connection", socket => {
                 if(response.status){             
                   results.payload.messages = [...response.payload];
                   results.status = true;
-                  console.log('Emmiting messages', results);
+
+                  //emitting to just that user who logged in
                   socket.emit("populate", results)
                 }
               }).catch(error => {
@@ -313,7 +338,19 @@ app.io.on("connection", socket => {
       }
     }).catch(error => {
         error_on_server_message(uid,socket,error);
-    })
+    });
+
+  /*** when use leaves chat room broadcast to everyone else that the user has left the chatroom ***/
+  socket.on("left-chat", data => {
+        user_left_chat(uid,socket);
+  });
+
+
+  /*** when user joins chat communicates to everyone else that user has joined the chatroom **/
+
+  socket.on("user-joined", data => {
+      user_joined_chat(uid,socket);
+  });
 
 });
 
