@@ -69,7 +69,7 @@ function chat_instance(){
     this.add_message = (message) => {
         // if((Array.isArray(this.messages)) && (this.messages.length > this._max_messages)){
         //     for (let i = 0; i < Math.floor(this._max_messages/2); i++){
-        //         this.write_promises.push(onSendMessage(this.messages.shift()))
+        //         this.write_promises.push(on_send_message(this.messages.shift()))
         //     }
         // } TODO- i might use this function when buffer is full
         const local_message = {...message};
@@ -95,7 +95,7 @@ function chat_instance(){
               return this.messages.slice(start, end)
           }
       }else{
-          this.read_promises.push(onFetchMessages(this.chat_room.chat_id));
+          this.read_promises.push(on_fetch_messages(this.chat_room.chat_id));
       }
     };
 
@@ -338,7 +338,7 @@ const updateChatRoom = async (uid,data) => {
   * 
   * @param {*} message -- contains the message data sent by prepare message
   */
-const onSendMessage = async message => {        
+const on_send_message = async message => {
         const chat_id = message.chat_id;
         const api_router = endpoint_server + `/message/${chat_id}`;
         const results = { status: true, payload: {}, error: {} };
@@ -361,7 +361,7 @@ const onSendMessage = async message => {
         return results;
 };
 
-const onFetchMessages = async chat_id => {
+const on_fetch_messages = async chat_id => {
         const api_router = endpoint_server + `/messages/${chat_id}`;
         const results = { status: true, payload: [], error: {} };
 
@@ -391,7 +391,7 @@ const onFetchMessages = async chat_id => {
 
 
 
-const onJoinChatRoom = async (user_detail,chat_id) => {
+const on_join_chat_room = async (user_detail,chat_id) => {
         const api_router = endpoint_server + `/user/${chat_id}`;
         const results = { status: true, payload: {}, error: {} };
 
@@ -413,7 +413,7 @@ const onJoinChatRoom = async (user_detail,chat_id) => {
 };
 
 
-const onFetchUsers = async chat_id => {
+const on_fetch_users = async chat_id => {
         const api_router = endpoint_server + `/users/${chat_id}`;
         const results = { status: true, payload: {}, error: {} };
 
@@ -435,7 +435,7 @@ const onFetchUsers = async chat_id => {
         return results;
 };
 
-const onFetchUser = async uid => {
+const on_fetch_user = async uid => {
   const api_router = endpoint_server + `/user/${uid}`;
   const results = { status: true, payload: {}, error: {} };
   
@@ -460,7 +460,7 @@ const onFetchUser = async uid => {
 // room utils
 
 // creating a chat room for an app or for specific users
-const onCreateRoom = async room_detail => {
+const on_create_room = async room_detail => {
         const api_router = endpoint_server + `/room`;
         const results = { status: true, payload: {}, error: {} };
 
@@ -482,7 +482,7 @@ const onCreateRoom = async room_detail => {
 };
 
 // fetch a specific chat room by chat id
-const onFetchRoom = async chat_id => {
+const on_fetch_room = async chat_id => {
         const api_router = endpoint_server + `/room/${chat_id}`;
         const results = { status: true, payload: {}, error: {} };
 
@@ -505,16 +505,12 @@ const onFetchRoom = async chat_id => {
 };
 
 
-const bootstrap = () => {
-    bootstrap_messages();
-    bootstrap_users();
-};
 
 
-// User functions
+/**** bootstrapping functions ***/
 const bootstrap_messages = () => {
     if (!chat_detail.bootstrapped){
-        onFetchMessages(chat_detail.chat_room.chat_id).then(response => {
+        on_fetch_messages(chat_detail.chat_room.chat_id).then(response => {
             console.log('messages_fetched')
             chat_detail.bootstrapped = true;
         })
@@ -522,10 +518,14 @@ const bootstrap_messages = () => {
 };
 
 const bootstrap_users = () => {
-    onFetchUsers(chat_detail.chat_room.chat_id).then(response => {
+    on_fetch_users(chat_detail.chat_room.chat_id).then(response => {
         console.log('users fetched')
     })
 }
+const bootstrap = () => {
+    bootstrap_messages();
+    bootstrap_users();
+};
 
 bootstrap();
 
@@ -536,12 +536,12 @@ module.exports = {
   delete: deleteChatRoom,
   update: updateChatRoom,
 
-  onSendMessage: onSendMessage,
-  onFetchMessages: onFetchMessages,
-  onJoinChatRoom: onJoinChatRoom,
-  onFetchUsers: onFetchUsers,
-  onFetchUser : onFetchUser,
-  onCreateRoom: onCreateRoom,
-  onFetchRoom: onFetchRoom,
+  onSendMessage: on_send_message,
+  onFetchMessages: on_fetch_messages,
+  onJoinChatRoom: on_join_chat_room,
+  onFetchUsers: on_fetch_users,
+  onFetchUser : on_fetch_user,
+  onCreateRoom: on_create_room,
+  onFetchRoom: on_fetch_room,
   chat_detail: chat_detail
 };

@@ -9,8 +9,7 @@ from chat import ChatUsers, ChatRoom, ChatMessages, Utilities
 
 class TasksRouter(webapp2.RequestHandler, Utilities):
 
-    
-    def archiveMessages(self):
+    def archive_messages(self):
         """
             # Archive Messages older than 72 hours
             # archived messages are not normally sent when messages are retrieved
@@ -24,7 +23,6 @@ class TasksRouter(webapp2.RequestHandler, Utilities):
                 message.archived = True
                 message.put()
 
-    
     def delete_messages(self):
         """
             delete archived messages older than 10 days
@@ -35,7 +33,6 @@ class TasksRouter(webapp2.RequestHandler, Utilities):
             if message.timestamp < (Utilities.create_timestamp()) - (60 * 60 * 24 * 10 * 1000):
                 message.key.delete()
 
-
     def get(self):
         url_route = self.request.uri
         url_routes = url_route.split("/")
@@ -45,14 +42,13 @@ class TasksRouter(webapp2.RequestHandler, Utilities):
         logging.info(router)
 
         if 'archive-messages' in route:
-            self.archiveMessages()
+            self.archive_messages()
 
         elif 'delete-messages' in route:
             self.delete_messages()
 
         else:
             pass
-
 
 
 app = webapp2.WSGIApplication([

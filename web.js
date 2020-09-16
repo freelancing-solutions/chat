@@ -196,6 +196,8 @@ const process_and_store_messages = async (socket,uid,app, processed_message) => 
 
 }
 
+app.io.set('transports', ['websocket']);
+
 app.io.on("connection", socket => {
     
     let uid = socket.handshake.query.token;
