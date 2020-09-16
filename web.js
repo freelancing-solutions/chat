@@ -252,7 +252,7 @@ app.io.on("connection", socket => {
   socket.on("typing", data => {
         /*** use socket to emit the typing message to everyone presently dont work though **/
         const results = {status : true, payload : {typing : {} , user : {}}, error: {}};
-        console.log('typing');
+
         data.payload.typing.timestamp = Date.now();
         data.payload.user.last_online = Date.now();
         results.payload = {...data.payload};        

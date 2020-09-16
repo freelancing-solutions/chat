@@ -80,7 +80,6 @@ function chat_instance(){
         }
 
         this.messages.push(local_message);
-        console.log('messages length : ', this.messages.length);
         return this.messages;
     };
 
@@ -175,7 +174,6 @@ function chat_instance(){
                 results.status = response.status;
                 results.payload = response.payload;
                 results.error = {message: response.error};
-                console.log('authorized token : ', results);
             }).catch(error => {
                 results.status = false;
                 results.error = {...error};
@@ -342,7 +340,6 @@ const on_send_message = async message => {
         const chat_id = message.chat_id;
         const api_router = endpoint_server + `/message/${chat_id}`;
         const results = { status: true, payload: {}, error: {} };
-        console.log('sending messages to chat_server datastore', message);
         await axios.post(api_router,JSON.stringify(message)).then(response => {
           if(response.status === 200){
             return response.data
@@ -372,7 +369,7 @@ const on_fetch_messages = async chat_id => {
                 }
                 throw new Error('error fetching messages')
             }).then(messages => {
-                // console.log('returned messages',messages);
+
                 results.status = true;
                 results.payload = [...messages];
                 results.error = {}
@@ -511,7 +508,6 @@ const on_fetch_room = async chat_id => {
 const bootstrap_messages = () => {
     if (!chat_detail.bootstrapped){
         on_fetch_messages(chat_detail.chat_room.chat_id).then(response => {
-            console.log('messages_fetched')
             chat_detail.bootstrapped = true;
         })
     }
@@ -519,9 +515,9 @@ const bootstrap_messages = () => {
 
 const bootstrap_users = () => {
     on_fetch_users(chat_detail.chat_room.chat_id).then(response => {
-        console.log('users fetched')
     })
-}
+};
+
 const bootstrap = () => {
     bootstrap_messages();
     bootstrap_users();
