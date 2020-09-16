@@ -1,11 +1,19 @@
 const axios = require('axios');
 const config = require('config');
 const templates = require('./bot_templates');
-/*** loading emojis ***/
 
+
+/*** loading emojis from file ***/
 const fs = require('fs');
-let rawdata = fs.readFileSync('emoji.json');
-let emojis = JSON.parse(rawdata);
+let emojis = [];
+const convertEmojiFile = (error,data) => {
+    if (!error){
+        emojis = JSON.parse(data);
+    }
+};
+
+fs.readFile('emoji.json','utf8',convertEmojiFile);
+
 // console.log(emojis);
 /***
  * implement a message router - which allow me to send messages to specific users only
@@ -221,7 +229,7 @@ const active_command_message = [
  */
 
 const process_command = async (message) => {
-    console.log(message);
+
     const internal_key = process.env.INTERNAL_KEY || config.get('INTERNAL_KEY');
     const results = {status: false, payload: {}, error: {}};
     results.payload = message.message; /** this prevents an error if the message is not a command **/

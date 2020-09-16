@@ -150,30 +150,51 @@ const check_for_command = message => {
 }
 
 
-/***
- * check if user has token
- * TODO- in the future authroize the user token
- */
-app.use((socket, next) => {
-    let uid = socket.handshake.query.token;
-    if (uid === ''){
-        return next(new Error('cannot accept null token'));
-    }
-    if (data_store.chat_detail.add_connection(uid,socket)){
-        return next();
-    }
-    return next(new Error('already connected'))
-});
 
 /***
  * starting server
  */
 app.listen(PORT).on('listening', () => console.log(`Realtime server running on ${PORT}`));
 
-/***
- * ap io listening for events
- ***/
 
+
+/***
+ * check if user has token
+ * TODO- in the future authroize the user token
+ */
+// app.io.use((socket, next) => {
+//     let uid = socket.handshake.query.token;
+//     if (uid === ''){
+//         return next(new Error('cannot accept null token'));
+//     }
+//     if (data_store.chat_detail.add_connection(uid,socket)){
+//
+//         return next();
+//     }
+//     return next(new Error('already connected'))
+// });
+
+
+/***
+ * sending processing message and storing to data store
+ ***/
+const process_and_store_messages = async (socket,uid,app, processed_message) => {
+    const results = {status : true, payload : [], error : {}}
+    /** memoization message on local datastructures **/
+    let stored_messages = data_store.chat_detail.add_message(processed_message.message);
+    results.status = true;
+    results.payload = [...stored_messages];
+    /** broadcasting message to all chat sessions **/
+    app.io.sockets.emit('chat', results);
+    /*** sending messages to google app engine datastore **/
+    data_store.onSendMessage(stored_messages[stored_messages.length -1]).then(response => {
+    }).catch(error => {
+        error_on_server_message(uid, socket, error);
+    });
+
+    return results;
+
+}
 
 app.io.on("connection", socket => {
     
@@ -208,39 +229,17 @@ app.io.on("connection", socket => {
     results.payload = {...data.payload};
 
         let processed_message = data.payload;
-
         /*** check if message is command if yes then process command and send response **/
         /*** its a command message **/
+        let process_response = '';
         if (check_for_command(processed_message.message.message)){
             pocket_bot.process_command(processed_message.message).then(message => {
                 processed_message.message.message = message;
-
-                /** memoizing message on local datastructure **/
-                const stored_message = data_store.chat_detail.add_message(processed_message.message);
-                results.status = true;
-                results.payload = {...stored_message};
-                /** broadcasting message to all chat sessions **/
-                app.io.sockets.emit('chat', results);
-
-                /*** sending messages to google app engine datastore **/
-                data_store.onSendMessage(stored_message).then(response => {
-                }).catch(error => {
-                    error_on_server_message(uid, socket, error);
-                });
+                process_response = process_and_store_messages(socket,uid,app,processed_message);
             })
 
         }else{
-
-            const stored_message = data_store.chat_detail.add_message(processed_message.message);
-            results.status = true;
-            results.payload = {...stored_message};
-            app.io.sockets.emit('chat', results);
-
-            data_store.onSendMessage(processed_message.message).then(response => {
-
-            }).catch(error => {
-                error_on_server_message(uid, socket, error);
-            });
+            process_response = process_and_store_messages(socket,uid,app,processed_message);
         }
   });
 
@@ -251,6 +250,7 @@ app.io.on("connection", socket => {
   socket.on("typing", data => {
         /*** use socket to emit the typing message to everyone presently dont work though **/
         const results = {status : true, payload : {typing : {} , user : {}}, error: {}};
+        console.log('typing');
         data.payload.typing.timestamp = Date.now();
         data.payload.user.last_online = Date.now();
         results.payload = {...data.payload};        

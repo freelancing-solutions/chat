@@ -4,6 +4,7 @@ const {v4: uuidv4} = require("uuid");
 
 // use admin_uid to create new chat_room
 const endpoint_server = process.env.STORE_ENDPOINT_SERVER || config.get('STORE_ENDPOINT_SERVER');
+const pocket_endpoint_server = process.env.POCKET_MONEY_ENDPOINT || config.get('POCKET_MONEY_ENDPOINT');
 const admin_uid = process.env.ADMIN_USER || config.get("ADMIN_USER");
 
 Array.prototype.contains_message = function(message) {
@@ -24,8 +25,9 @@ Array.prototype.unique_message = function() {
 }
 
 function chat_instance(){
+    this.bootstrapped = false;
     this.chat_room = {
-        chat_id : "",
+        chat_id : "p-m",
         created_by : "",
         name : "",
         description : ""
@@ -59,6 +61,7 @@ function chat_instance(){
     };
     this._add_store_message  = (message) => {
         if(Array.isArray(this.messages) && (this.messages.length < this._max_messages)){
+
             this.messages = this.messages.concat(message);
             this.messages = this.messages.unique_message();
         }
@@ -69,16 +72,16 @@ function chat_instance(){
         //         this.write_promises.push(onSendMessage(this.messages.shift()))
         //     }
         // } TODO- i might use this function when buffer is full
-
-        message.message_id = uuidv4();
-        message.timestamp = Date.now(); /*** time already in millisends ***/
-        if (message.attachments.url !== ""){
-            message.attachments.message_id = message.message_id;
+        const local_message = {...message};
+        local_message.message_id = uuidv4();
+        local_message.timestamp = Date.now(); /*** time already in millisends ***/
+        if (local_message.attachments.url !== ""){
+            local_message.attachments.message_id = message.message_id;
         }
 
-        this.messages.push(message);
+        this.messages.push(local_message);
         console.log('messages length : ', this.messages.length);
-        return message;
+        return this.messages;
     };
 
 
@@ -96,69 +99,94 @@ function chat_instance(){
       }
     };
 
-    this._add_store_users = user => {
-       let existing_user = this.users.find(user => user.uid === user.uid)
-        if (existing_user && user.username){
-            existing_user.username = user.username;
-            existing_user.online = user.online;
-            existing_user.last_online = user.last_online;
-            existing_user.chat_revoked = user.chat_revoked;
-            existing_user.is_admin = user.is_admin;
-        }
-        let temp_users = this.users.filter( user => user.uid === existing_user.uid);
-        temp_users.push(existing_user);
-        this.users = temp_users
-    };
 
+    this._merge_users = (existing, user) => {
+           if ((existing.username === '') && (user.username !== '')){
+                existing = {...user};
+            }
+           return existing
+    };
 
     this.add_user = (user) => {
-        let existing_user = this.users.find(user => user.uid === user.uid)
-        if (existing_user && user.username){
-            existing_user.username = user.username;
-            existing_user.online = user.online;
-            existing_user.last_online = user.last_online;
-            existing_user.chat_revoked = user.chat_revoked;
-            existing_user.is_admin = user.is_admin;
-        }
+       let existing_user = {...chat_user_detail}
+       if (Array.isArray(this.users) ){
+         let found_user = this.users.find(user => user.uid === user.uid)
+           if (found_user){existing_user = found_user}
+       }
+       existing_user = this._merge_users(existing_user,user);
+        /**if there was an existing user this will replace the user with a new user ***/
         let temp_users = this.users.filter( user => user.uid === existing_user.uid);
         temp_users.push(existing_user);
         this.users = temp_users
-        this.write_promises.push(onJoinChatRoom(existing_user,existing_user.chat_id));
-        return existing_user
     };
+
     this.read_users = () => {
         if(Array.isArray(this.users)){
             return this.users
         }
         return [];
     };
+
     this.add_connection = (uid,socket) => {
         let connection = {
             uid : '',
             socket : ''
         }
       if(Array.isArray(this.connections) && (this.connections.find(connection => connection.uid === uid))){
-           return false;
+          return true;
        }
        connection.uid = uid;
        connection.socket = socket;
        this.connections.push(connection);
        return true;
     };
+
+
     this.remove_connection = (uid) => {
         if (Array.isArray(this.connections)){
             this.connections = this.connections.filter(connection => connection.uid === uid)
         }
 
     };
+
     this.get_connection = (uid) => {
         if (Array.isArray(this.connections) && (this.connections.length > 0)){
             let this_connection = this.connections.find(connection => connection.uid === uid);
             if (this_connection){return this_connection}
         }
         return ""
+    };
+
+    /*** auth token asks pocket money api not the chat_server api to verify the token **/
+    this.auth_token =async uid => {
+        const results = {status: false, payload : {authorized: false}, error: {}};
+        let auth_url = pocket_endpoint_server + `/auth/${uid}`;
+        /*** checking if user already connected if yes then user is already authorized **/
+        if (this.connections.find(user => user.uid === uid)){
+            results.status = true;
+            results.authorized = true;
+
+        }else {
+            await axios.get(auth_url).then(response => {
+                if (response.status) {
+                    return response.data;
+                }
+            }).then(response => {
+                results.status = response.status;
+                results.payload = response.payload;
+                results.error = {message: response.error};
+                console.log('authorized token : ', results);
+            }).catch(error => {
+                results.status = false;
+                results.error = {...error};
+            });
+        }
+        return results.payload.authorized && results.status;
     }
+
+    /**** end object ***/
 };
+
 
 let chat_detail = new chat_instance();
 
@@ -314,7 +342,7 @@ const onSendMessage = async message => {
         const chat_id = message.chat_id;
         const api_router = endpoint_server + `/message/${chat_id}`;
         const results = { status: true, payload: {}, error: {} };
-
+        console.log('sending messages to chat_server datastore', message);
         await axios.post(api_router,JSON.stringify(message)).then(response => {
           if(response.status === 200){
             return response.data
@@ -330,7 +358,6 @@ const onSendMessage = async message => {
           results.payload = {...message}
         });
 
-        
         return results;
 };
 
@@ -362,8 +389,6 @@ const onFetchMessages = async chat_id => {
         return results;
 };
 
-
-// User functions
 
 
 const onJoinChatRoom = async (user_detail,chat_id) => {
@@ -406,7 +431,7 @@ const onFetchUsers = async chat_id => {
           results.payload = [];
           results.error = {...error};
         });
-        // results.payload.forEach(user => chat_detail._add_store_users(user));
+        results.payload.forEach(user => chat_detail.add_user(user));
         return results;
 };
 
@@ -480,6 +505,29 @@ const onFetchRoom = async chat_id => {
 };
 
 
+const bootstrap = () => {
+    bootstrap_messages();
+    bootstrap_users();
+};
+
+
+// User functions
+const bootstrap_messages = () => {
+    if (!chat_detail.bootstrapped){
+        onFetchMessages(chat_detail.chat_room.chat_id).then(response => {
+            console.log('messages_fetched')
+            chat_detail.bootstrapped = true;
+        })
+    }
+};
+
+const bootstrap_users = () => {
+    onFetchUsers(chat_detail.chat_room.chat_id).then(response => {
+        console.log('users fetched')
+    })
+}
+
+bootstrap();
 
 
 module.exports = {

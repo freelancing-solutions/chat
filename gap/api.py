@@ -55,6 +55,7 @@ class APIRouterHandler(webapp2.RequestHandler):
 
             messages_instance = ChatMessages()
             response_data = messages_instance.get_chat_message(chat_id=chat_id)
+
         else:
             status_int = 401
             response_data = {'message':'could not understand request'}

@@ -22,7 +22,6 @@ class Utilities(ndb.Expando):
         return int(float(time.time())*1000)    
         
 
-
 class ChatUsers(Utilities):
     chat_id = ndb.StringProperty()
     uid = ndb.StringProperty()
@@ -78,6 +77,7 @@ class ChatUsers(Utilities):
         chat_user_instance.put()
         return chat_user_instance
 
+
 class Attachments(Utilities):
     message_id = ndb.StringProperty()
     filename = ndb.StringProperty()
@@ -99,10 +99,10 @@ class ChatMessages(Utilities):
         # ordering messages by the order in which they where sent
         # TODO- include all limits and constants on constants utility
         messages_list = ChatMessages.query(ChatMessages.chat_id == str(chat_id).lower()).order(ChatMessages.timestamp).fetch(limit=self._max_query_limit)
-        messages = [message for message in messages_list]
+
         payload = []
 
-        for message in messages:
+        for message in messages_list:
             attach = {'filename': '', 'url': '', 'message_id': ''}
             response = message.to_dict()
             if message.attachments == 'yes':
@@ -117,7 +117,8 @@ class ChatMessages(Utilities):
             else:
                 response['attachments'] = attach
 
-            payload.append(response)
+            if not message.archived:
+                payload.append(response)
 
         return payload
 
@@ -132,11 +133,17 @@ class ChatMessages(Utilities):
             message_instance = ChatMessages()
             if message_detail['message_id'] == "":
                 message_instance.message_id = self.create_id()
+            else:
+                message_instance.message_id = message_detail['message_id']
+
             message_instance.chat_id = str(message_detail['chat_id']).encode('utf-8').lower()
             message_instance.uid = uid
             message_instance.message = message_detail['message'].encode('utf-8')
             if message_detail['timestamp'] == 0:
                 message_instance.timestamp = self.create_timestamp()
+            else:
+                message_instance.timestamp = message_detail['timestamp']
+
             attachments = message_detail['attachments']
             if (attachments['url'] != '') and (attachments['filename'] != ''):
                 attachment_instance = Attachments()
