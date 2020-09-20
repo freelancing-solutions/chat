@@ -6,7 +6,7 @@ const {v4: uuidv4} = require("uuid");
 const endpoint_server = process.env.STORE_ENDPOINT_SERVER || config.get('STORE_ENDPOINT_SERVER');
 const pocket_endpoint_server = process.env.POCKET_MONEY_ENDPOINT || config.get('POCKET_MONEY_ENDPOINT');
 const admin_uid = process.env.ADMIN_USER || config.get("ADMIN_USER");
-
+const toxicity = require('@tensorflow-models/toxicity');
 Array.prototype.contains_message = function(message) {
   for (var i = 0; i < this.length; i++) {
     if (this[i].message_id === message.message_id) return true;
@@ -24,7 +24,7 @@ Array.prototype.unique_message = function() {
   return arr;
 }
 
-function chat_instance(){
+function Chat_instance(){
     this.bootstrapped = false;
     this.chat_room = {
         chat_id : "p-m",
@@ -66,23 +66,44 @@ function chat_instance(){
             this.messages = this.messages.unique_message();
         }
     };
+
+    this.detect_toxicity = async (message) => {
+        try {
+            const threshold = 0.9;
+            let model = await toxicity.load(threshold,['identity_attack', 'insult', 'toxicity', 'threat']);
+            let predictions = await model.classify([message]);
+            console.log('predictions model', predictions);
+            let toxic = false;
+            predictions.forEach( prediction => {
+                if (prediction.match){
+                    toxic = true;
+                }
+            });
+            return toxic;
+        }catch(e){
+            return false;
+        }
+    };
+
     this.add_message = (message) => {
-        // if((Array.isArray(this.messages)) && (this.messages.length > this._max_messages)){
-        //     for (let i = 0; i < Math.floor(this._max_messages/2); i++){
-        //         this.write_promises.push(on_send_message(this.messages.shift()))
-        //     }
-        // } TODO- i might use this function when buffer is full
+        /** if messages buffer is full half empty the buffer **/
+        if((Array.isArray(this.messages)) && (this.messages.length > this._max_messages)){
+            for (let i = 0; i < Math.floor(this._max_messages/2); i++){
+                let throw_away = this.messages.shift();
+            }
+        } /** TODO- i might use this function when buffer is full **/
+
         const local_message = {...message};
         local_message.message_id = uuidv4();
         local_message.timestamp = Date.now(); /*** time already in millisends ***/
-        if (local_message.attachments.url !== ""){
+
+        if (local_message.attachments.url !== "") {
             local_message.attachments.message_id = message.message_id;
         }
 
         this.messages.push(local_message);
         return this.messages;
     };
-
 
     this.read_messages = () => {
       if (Array.isArray(this.messages) && (this.messages.length > 0)){
@@ -186,7 +207,7 @@ function chat_instance(){
 };
 
 
-let chat_detail = new chat_instance();
+let chat_detail = new Chat_instance();
 
 const attachment_detail = {
         message_id : '',

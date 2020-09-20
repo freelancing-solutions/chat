@@ -186,15 +186,27 @@ const process_and_store_messages = async (socket,uid,app, processed_message) => 
     results.payload = [...stored_messages];
     /** broadcasting message to all chat sessions **/
     app.io.sockets.emit('chat', results);
+
+
+    try{
+        /** checking if there where any toxic message of which if it was the case then send a warning to the user **/
+        let is_toxic = await data_store.chat_detail.detect_toxicity(processed_message.message.message)
+        if (is_toxic){socket.emit('warning we are detecting toxic text being sent by you please refrain from this or your account will be suspended')}
+    }catch (error){
+        console.log('toxic error', error.message);
+    }
+
     /*** sending messages to google app engine datastore **/
     data_store.onSendMessage(stored_messages[stored_messages.length -1]).then(response => {
+        if (!response.status){
+            socket.emit('warning system failure pending... admins where notified ');
+        }
     }).catch(error => {
         error_on_server_message(uid, socket, error);
     });
 
     return results;
-
-}
+};
 
 app.io.set('transports', ['websocket']);
 
@@ -235,16 +247,18 @@ app.io.on("connection", socket => {
         /*** its a command message **/
         let process_response = '';
         if (check_for_command(processed_message.message.message)){
+
             pocket_bot.process_command(processed_message.message).then(message => {
                 processed_message.message.message = message;
                 process_response = process_and_store_messages(socket,uid,app,processed_message);
+            }).catch(error => {
+                socket.emit('error processing command, if you need this resolved open a ticket with this message : ', error.message);
             })
 
         }else{
             process_response = process_and_store_messages(socket,uid,app,processed_message);
         }
   });
-
 
   /***
      * on typing is where users gets status updates
