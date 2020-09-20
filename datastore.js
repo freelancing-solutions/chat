@@ -73,10 +73,10 @@ function Chat_instance(){
             const threshold = 0.9;
             let model = await toxicity.load(threshold,['identity_attack', 'insult', 'toxicity', 'threat']);
             let predictions = await model.classify([message]);
-            console.log('predictions model', predictions);
+            console.log('predictions model', predictions.results[0]);
             let toxic = false;
             predictions.forEach( prediction => {
-                if (prediction.match){
+                if (prediction.results[0].match){
                     toxic = true;
                 }
             });
