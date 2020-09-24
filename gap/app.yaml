@@ -7,8 +7,6 @@ includes:
   - api.yaml
   - tasks.yaml
 
-
-
 handlers:
 - url: /favicon\.ico
   static_files: favicon.ico
@@ -16,7 +14,6 @@ handlers:
 
 - url: /static
   static_dir: templates/static
-  
 
 - url: /
   secure: always
