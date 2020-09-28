@@ -38,7 +38,6 @@ const user_directed_messages = [
     }
 ];
 
-
 /**
  * Active Command Messages
  * this commands perform database searches on main applicatin on behalf of the user
@@ -46,7 +45,6 @@ const user_directed_messages = [
  * command will call main server api to complete the transaction
  * ...main server api will need a separate router with a private key to authorize the bot for this action
  **/
-
 
 const active_command_message = [
     {
@@ -223,16 +221,18 @@ const active_command_message = [
         }
 ];
 
-/***
+/**
  *
  * process commands and send response to user
- */
+ *
+ **/
 
 const process_command = async (message) => {
 
     const internal_key = process.env.INTERNAL_KEY || config.get('INTERNAL_KEY');
     const results = {status: false, payload: {}, error: {}};
-    results.payload = message.message; /** this prevents an error if the message is not a command **/
+    results.payload = message.message;
+    /** this prevents an error if the message is not a command **/
     /*** link commands ***/
     if (message.message.toLowerCase().startsWith('#pocket')){
         for (const com_message of link_command_messages){
@@ -242,7 +242,6 @@ const process_command = async (message) => {
             }
         }
     }
-
     /*** document dumps ***/
     if (message.message.toLowerCase().startsWith("#docu")) {
         for (const com_message of document_dumps_messages) {
@@ -259,16 +258,13 @@ const process_command = async (message) => {
                 console.log('inside active command', message);
                 await perform_active_command_action(message.uid, `${com_action.action}/${message.uid}/${internal_key}`).then(response => {
                     results.payload = response.payload
-
                 }).catch(error => {
                     results.payload = `${message.message} : error : ${error.message}`
                 });
                 break;
-
             }
         }
     }
-
     /** emojis **/
     if(message.message.toLowerCase().startsWith("#emoji-")){
         if ('#emoji-list-smileys' === message.message.toLowerCase().trim()){

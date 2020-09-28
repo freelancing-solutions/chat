@@ -188,13 +188,13 @@ const process_and_store_messages = async (socket,uid,app, processed_message) => 
     app.io.sockets.emit('chat', results);
 
 
-    try{
-        /** checking if there where any toxic message of which if it was the case then send a warning to the user **/
-        let is_toxic = await data_store.chat_detail.detect_toxicity(processed_message.message.message)
-        if (is_toxic){socket.emit('warning we are detecting toxic text being sent by you please refrain from this or your account will be suspended')}
-    }catch (error){
-        console.log('toxic error', error.message);
-    }
+    // try{
+    //     /** checking if there where any toxic message of which if it was the case then send a warning to the user **/
+    //     let is_toxic = await data_store.chat_detail.detect_toxicity(processed_message.message.message)
+    //     if (is_toxic){socket.emit('warning we are detecting toxic text being sent by you please refrain from this or your account will be suspended')}
+    // }catch (error){
+    //     console.log('toxic error', error.message);
+    // }
 
     /*** sending messages to google app engine datastore **/
     data_store.onSendMessage(stored_messages[stored_messages.length -1]).then(response => {
