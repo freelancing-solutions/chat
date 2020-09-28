@@ -87,11 +87,11 @@ function Chat_instance(){
 
     this.add_message = (message) => {
         /** if messages buffer is full half empty the buffer **/
-        if((Array.isArray(this.messages)) && (this.messages.length > this._max_messages)){
-            for (let i = 0; i < Math.floor(this._max_messages/2); i++){
-                let throw_away = this.messages.shift();
-            }
-        } /** TODO- i might use this function when buffer is full **/
+        // if((Array.isArray(this.messages)) && (this.messages.length > this._max_messages)){
+        //     for (let i = 0; i < Math.floor(this._max_messages/2); i++){
+        //         let throw_away = this.messages.shift();
+        //     }
+        // } /** TODO- i might use this function when buffer is full **/
 
         const local_message = {...message};
         local_message.message_id = uuidv4();
