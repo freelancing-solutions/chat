@@ -25,8 +25,9 @@ suggestions and pull requests
 ## Authors & Contributors
     Names : Justice Ndou
     Twitter : https://twitter.com/@blueitserver
-    Profile : https://justicendou.site
-    About : https://justicendou.site/about
+    Profile : https://justice-ndou.appspot.com
+    About : https://justice-ndou.appspot.com/about
+    Contact : https://justice-ndou.appspot.com/contact
 
 ## License
 
