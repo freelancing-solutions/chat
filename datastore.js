@@ -6,8 +6,8 @@ const {v4: uuidv4} = require("uuid");
 const endpoint_server = process.env.STORE_ENDPOINT_SERVER || config.get('STORE_ENDPOINT_SERVER');
 const pocket_endpoint_server = process.env.POCKET_MONEY_ENDPOINT || config.get('POCKET_MONEY_ENDPOINT');
 const admin_uid = process.env.ADMIN_USER || config.get("ADMIN_USER");
-require('@tensorflow/tfjs-node');
-const toxicity = require('@tensorflow-models/toxicity');
+
+
 Array.prototype.contains_message = function(message) {
   for (var i = 0; i < this.length; i++) {
     if (this[i].message_id === message.message_id) return true;
@@ -68,30 +68,14 @@ function Chat_instance(){
         }
     };
 
-    this.detect_toxicity = async (message) => {
-        try {
-            const threshold = 0.9;
-            let model = await toxicity.load(threshold,['identity_attack', 'insult', 'toxicity', 'threat']);
-            let predictions = await model.classify([message]);
-            let toxic = false;
-            predictions.forEach( prediction => {
-                if (prediction.results[0].match){
-                    toxic = true;
-                }
-            });
-            return toxic;
-        }catch(e){
-            return false;
-        }
-    };
 
     this.add_message = (message) => {
         /** if messages buffer is full half empty the buffer **/
-        // if((Array.isArray(this.messages)) && (this.messages.length > this._max_messages)){
-        //     for (let i = 0; i < Math.floor(this._max_messages/2); i++){
-        //         let throw_away = this.messages.shift();
-        //     }
-        // } /** TODO- i might use this function when buffer is full **/
+        if((Array.isArray(this.messages)) && (this.messages.length > this._max_messages)){
+            for (let i = 0; i < Math.floor(this._max_messages/2); i++){
+                let throw_away = this.messages.shift();
+            }
+        } /** TODO- i might use this function when buffer is full **/
 
         const local_message = {...message};
         local_message.message_id = uuidv4();

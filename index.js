@@ -14,7 +14,7 @@ const pocket_bot = require('./pocket-money.bot');
 //****************************************************************************** */
 
 // PORT Configs and Index
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 
 
 //Servicees
@@ -337,12 +337,10 @@ app.io.on("connection", socket => {
        }else{
            error_on_server_message(uid,socket,{message: 'unable to join chat-room'});
        }
-
      }).catch(error => {
       //  could not join chat room
          error_on_server_message(uid,socket,error);
      })
-          
   });
 
   /***
