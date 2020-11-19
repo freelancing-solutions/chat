@@ -25,9 +25,12 @@ suggestions and pull requests
 ## Authors & Contributors
     Names : Justice Ndou
     Twitter : https://twitter.com/@blueitserver
-    Profile : https://justice-ndou.appspot.com
-    About : https://justice-ndou.appspot.com/about
-    Contact : https://justice-ndou.appspot.com/contact
+    Profile :[Justice Ndou](https://justice-ndou.appspot.com)
+    About : [About Justice Ndou](https://justice-ndou.appspot.com/about)
+    Contact : [Contact Justice Ndou](https://justice-ndou.appspot.com/contact)
+    
+## OWN Projects Using Chat API    
+    * [Pocket Money Wallet](https://www.pocket-money.site)
 
 ## License
 
