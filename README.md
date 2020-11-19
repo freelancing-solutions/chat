@@ -23,14 +23,12 @@ suggestions and pull requests
 
 
 ## Authors & Contributors
-    Names : Justice Ndou
-    Twitter : https://twitter.com/@blueitserver
-    Profile : <strong><a href="https://justice-ndou.appspot.com">Justice Ndou </a></strong>
-    About : <a href="https://justice-ndou.appspot.com/about"><strong>About Justice Ndou</strong></a> 
-    Contact :<a href="https://justice-ndou.appspot.com/contact"> <strong>Contact Justice Ndou</strong> </a>
-    
+    * Names : Justice Ndou
+    * Twitter : [Justice Ndou](https://twitter.com/@blueitserver)
+    * Profile : [Justice Ndou Profile](https://justice-ndou.appspot.com/)    
+        
 ## OWN Projects Using Chat API    
-    * <a href="https://pocket-money.site"><strong>Pocket Money Wallet Peer to Peer Lending Platform</strong></a>
+    * [Pocket Money Wallet Peer to Peer Lending Platform](https://pocket-money.site/)
 
 ## License
 
