@@ -28,7 +28,7 @@ suggestions and pull requests
 * Profile : [Justice Ndou Profile](https://justice-ndou.appspot.com/)    
         
 ## OWN Projects Using Chat API    
-* [Pocket Money Wallet Peer to Peer Lending Platform](https://pocket-money.site/)
+* [Pocket Money Wallet Peer to Peer Lending Platform](https://www.pocket-money.site/)
 
 ## License
 
