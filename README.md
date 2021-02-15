@@ -5,12 +5,12 @@ suggestions and pull requests
 
 ## Getting Started
 
-* **1. clone this repository, to your development server
-* **2. install node
-* **3. npm install
-* **4. create a repo in github and upload the reposiry
-* **5. create an app on heroku and deploy to heroku
-* **6. you should be ready to start on your development
+* 1. clone this repository, to your development server
+* 2. install node
+* 3. npm install
+* 4. create a repo in github and upload the reposiry
+* 5. create an app on heroku and deploy to heroku
+* 6. you should be ready to start on your development
 
 ### Prerequisites
     good understanding of javascript, node.js, express 
@@ -18,15 +18,17 @@ suggestions and pull requests
     environment and also the ability to commit, push and clone github repositories
 
 ## Contributing
-* ** Help develop the API
-* ** I intend to intergrate redis cache, and mongodb to help scale the server so that it can support multiple users
+* Help develop the API
+* I intend to intergrate redis cache, and mongodb to help scale the server so that it can support multiple users
 
 
 ## Authors & Contributors
-    Names : Justice Ndou
-    Twitter : https://twitter.com/@blueitserver
-    Profile : https://justicendou.site
-    About : https://justicendou.site/about
+* Names : Justice Ndou
+* Twitter : [Justice Ndou](https://twitter.com/@blueitserver)
+* Profile : [Justice Ndou Profile](https://justice-ndou.appspot.com/)    
+        
+## OWN Projects Using Chat API    
+* [Pocket Money Wallet Peer to Peer Lending Platform](https://www.pocket-money.site/)
 
 ## License
 
