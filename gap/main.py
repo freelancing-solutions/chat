@@ -69,7 +69,7 @@ class MainRouterHandler(webapp2.RequestHandler):
     def get(self):
         url_route = self.request.uri
         route = url_route.split("/")
-        
+
 
         if 'sitemap.xml' in route:
             self.RouteSitemap()
@@ -79,7 +79,7 @@ class MainRouterHandler(webapp2.RequestHandler):
 
         elif 'ads.txt'  in route:
             self.RouteAdsText()
-        else:            
+        else:
             self.RouteHome()
 
     def post(self):

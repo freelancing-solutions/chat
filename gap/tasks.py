@@ -18,7 +18,7 @@ class TasksRouter(webapp2.RequestHandler, Utilities):
         for message in messages_list:
             # calculate the difference between the present time and timestamp of message in hours
             # if hours greater than 72 then archive message
-            # if this prooves to be computationally heavy try using the clients processing power to process this
+            # if this proves to be computationally heavy try using the clients processing power to process this
             if message.timestamp < (Utilities.create_timestamp() - ( 60 * 60 * 24 * 3 * 1000)):
                 message.archived = True
                 message.put()

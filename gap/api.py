@@ -150,7 +150,6 @@ class APIRouterHandler(webapp2.RequestHandler):
             else:
                 status_int = 401
                 response_data = {'message': 'cannot delete chat room'}
-            
         else:
             status_int = 401
             response_data = {'message': 'could not understand request'}
@@ -160,9 +159,10 @@ class APIRouterHandler(webapp2.RequestHandler):
         self.response.status_int = status_int
         json_data = json.dumps(response_data)
         self.response.write(json_data)
-       
+
 app = webapp2.WSGIApplication([
     ('/api/v1/.*', APIRouterHandler)
 
-
 ], debug=True)
+
+

@@ -150,12 +150,10 @@ const check_for_command = message => {
 }
 
 
-
 /***
  * starting server
  */
 app.listen(PORT).on('listening', () => console.log(`Realtime server running on ${PORT}`));
-
 
 
 /***
@@ -211,7 +209,7 @@ const process_and_store_messages = async (socket,uid,app, processed_message) => 
 app.io.set('transports', ['websocket']);
 
 app.io.on("connection", socket => {
-    
+
     let uid = socket.handshake.query.token;
 
   // disconnect---here a user leaves a chat room---consider turning the user offline
@@ -269,7 +267,7 @@ app.io.on("connection", socket => {
 
         data.payload.typing.timestamp = Date.now();
         data.payload.user.last_online = Date.now();
-        results.payload = {...data.payload};        
+        results.payload = {...data.payload};
         /** sending on typing event to everyone else except the user typing **/
         socket.broadcast.emit("typing", results);
   });
@@ -288,7 +286,7 @@ app.io.on("connection", socket => {
     }).catch(error => {
         error_on_server_message(uid,socket,error);
     });
-    
+
   });
 
    /***
@@ -314,11 +312,11 @@ app.io.on("connection", socket => {
        if (response.status){
           data_store.onFetchUsers(data.chat_id).then(response => {
 
-            if(response.status){         
+            if(response.status){
               results.payload.users = [...response.payload];
-      
+
               data_store.onFetchMessages(data.chat_id).then(response => {
-                if(response.status){             
+                if(response.status){
                   results.payload.messages = [...response.payload];
                   results.status = true;
 
@@ -328,7 +326,7 @@ app.io.on("connection", socket => {
               }).catch(error => {
                 // could not fetch chat messages
                   error_on_server_message(uid,socket,error);
-              })      
+              })
             }
           }).catch(error => {
               // could not retrieve user information
